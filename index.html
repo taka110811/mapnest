@@ -18,7 +18,7 @@
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol('pmtiles', protocol.tile);
 
-    const PMTILES_URL = 'http://localhost:8080/tiles/output.pmtiles';
+    const PMTILES_URL = 'http://localhost:8080/tiles/output_with_props.pmtiles';
     const p = new pmtiles.PMTiles(PMTILES_URL);
     protocol.add(p);
 
@@ -68,20 +68,31 @@
                         'id': 'fill-layer',
                         'type': 'fill',
                         'source': 'pmtiles_source',
-                        'source-layer': 'japan_ver85_fc',
+                        'source-layer': 'japan_ver85_fc_with_props',
                         'paint': {
-                            'fill-color': '#ff0000',
-                            'fill-opacity': 0.3
+                            'fill-color': [
+                                'case',
+                                ['==', ['get', 'color_id'], 0], '#ff6b6b',  // 赤
+                                ['==', ['get', 'color_id'], 1], '#4ecdc4',  // ターコイズ
+                                ['==', ['get', 'color_id'], 2], '#45b7d1',  // 青
+                                ['==', ['get', 'color_id'], 3], '#96ceb4',  // 緑
+                                ['==', ['get', 'color_id'], 4], '#feca57',  // 黄色
+                                ['==', ['get', 'color_id'], 5], '#ff9ff3',  // ピンク
+                                ['==', ['get', 'color_id'], 6], '#a0e7e5',  // ライトブルー
+                                '#c7ecee'  // デフォルト（薄い青緑）
+                            ],
+                            'fill-opacity': 0.6
                         }
                     },
                     {
                         'id': 'stroke-layer',
                         'type': 'line',
                         'source': 'pmtiles_source',
-                        'source-layer': 'japan_ver85_fc',
+                        'source-layer': 'japan_ver85_fc_with_props',
                         'paint': {
-                            'line-color': '#ff0000',
-                            'line-width': 2
+                            'line-color': '#333333',
+                            'line-width': 1,
+                            'line-opacity': 0.8
                         }
                     }
                 ]
