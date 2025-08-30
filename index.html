@@ -29,6 +29,11 @@
             font-weight: bold;
             color: #333;
         }
+        .clickable-hint {
+            font-size: 10px;
+            color: #999;
+            margin-top: 3px;
+        }
     </style>
 </head>
 <body>
@@ -36,6 +41,7 @@
 <div class="info-panel">
     <div class="zoom-info">Zoom: <span id="current-zoom">5</span></div>
     <div class="layer-info">Layer: <span id="current-layer">都道府県</span></div>
+    <div class="clickable-hint">💡 クリックで次の階層へ</div>
 </div>
 <script>
     // Add PMTiles protocol
@@ -284,36 +290,91 @@
             updateLayerInfo(map.getZoom());
         });
 
-        // クリック時の情報表示
+        // タイルクリック時のズームイン機能
         map.on('click', (e) => {
             const features = map.queryRenderedFeatures(e.point);
             if (features.length > 0) {
                 const feature = features[0];
                 const props = feature.properties;
+                const currentZoom = map.getZoom();
                 
-                let content = '<h3>地域情報</h3>';
-                if (props.level === 'region') {
-                    content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
-                    content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
-                } else if (props.level === 'prefecture') {
-                    content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
-                    content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
-                    content += `<p><strong>JISコード:</strong> ${props.jis_code}</p>`;
-                } else if (props.level === 'municipality') {
-                    content += `<p><strong>市区町村:</strong> ${props.municipality_jp}</p>`;
-                    content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
-                    content += `<p><strong>コード:</strong> ${props.jcode}</p>`;
-                } else if (props.level === 'detailed') {
-                    content += `<p><strong>地域:</strong> ${props.SIKUCHOSON || 'N/A'}</p>`;
-                    content += `<p><strong>都道府県:</strong> ${props.KEN || 'N/A'}</p>`;
-                    content += `<p><strong>人口:</strong> ${props.P_NUM?.toLocaleString() || 'N/A'}</p>`;
+                // 階層に応じた次のズームレベルとセンター計算
+                let targetZoom = currentZoom + 2;
+                let shouldZoom = false;
+                
+                // フィーチャーの中心座標を計算
+                const bounds = new maplibregl.LngLatBounds();
+                if (feature.geometry.type === 'Polygon') {
+                    feature.geometry.coordinates[0].forEach(coord => {
+                        bounds.extend(coord);
+                    });
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    feature.geometry.coordinates.forEach(polygon => {
+                        polygon[0].forEach(coord => {
+                            bounds.extend(coord);
+                        });
+                    });
                 }
+                
+                // 階層別のズーム処理
+                if (props.level === 'region' && currentZoom < 6) {
+                    targetZoom = 7; // 都道府県レベルに切り替え
+                    shouldZoom = true;
+                } else if (props.level === 'prefecture' && currentZoom < 8) {
+                    targetZoom = 9; // 市区町村レベルに切り替え
+                    shouldZoom = true;
+                } else if (props.level === 'municipality' && currentZoom < 11) {
+                    targetZoom = 12; // 詳細レベルに切り替え
+                    shouldZoom = true;
+                }
+                
+                if (shouldZoom) {
+                    // ズームインアニメーション
+                    map.fitBounds(bounds, {
+                        padding: 50,
+                        maxZoom: targetZoom,
+                        duration: 300
+                    });
+                } else {
+                    // 詳細情報ポップアップ表示（最下位レベルまたはズーム不要な場合）
+                    let content = '<h3>地域情報</h3>';
+                    if (props.level === 'region') {
+                        content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
+                        content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
+                        content += `<p><strong>世帯数:</strong> ${props.households?.toLocaleString() || 'N/A'}</p>`;
+                    } else if (props.level === 'prefecture') {
+                        content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
+                        content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
+                        content += `<p><strong>JISコード:</strong> ${props.jis_code}</p>`;
+                        content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
+                    } else if (props.level === 'municipality') {
+                        content += `<p><strong>市区町村:</strong> ${props.municipality_jp}</p>`;
+                        content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
+                        content += `<p><strong>コード:</strong> ${props.jcode}</p>`;
+                        content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
+                    } else if (props.level === 'detailed') {
+                        content += `<p><strong>地域:</strong> ${props.SIKUCHOSON || 'N/A'}</p>`;
+                        content += `<p><strong>都道府県:</strong> ${props.KEN || 'N/A'}</p>`;
+                        content += `<p><strong>人口:</strong> ${props.P_NUM?.toLocaleString() || 'N/A'}</p>`;
+                        content += `<p><strong>世帯数:</strong> ${props.H_NUM?.toLocaleString() || 'N/A'}</p>`;
+                        content += `<p class="zoom-note" style="color: #666; font-size: 11px; margin-top: 8px;">💡 これ以上詳細なレベルはありません</p>`;
+                    }
 
-                new maplibregl.Popup()
-                    .setLngLat(e.lngLat)
-                    .setHTML(content)
-                    .addTo(map);
+                    new maplibregl.Popup()
+                        .setLngLat(e.lngLat)
+                        .setHTML(content)
+                        .addTo(map);
+                }
             }
+        });
+
+        // マウスホバー効果
+        map.on('mouseenter', ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'detailed-fill'], () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        map.on('mouseleave', ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'detailed-fill'], () => {
+            map.getCanvas().style.cursor = '';
         });
 
         map.on('error', (e) => {
