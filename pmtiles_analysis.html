@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>PMTiles Analysis</title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.css' />
+    <script src='https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.js'></script>
+    <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+</head>
+<body>
+<div style="padding: 20px;">
+    <h1>japan_all_levels.pmtiles 分析結果</h1>
+    <div id="analysis-results"></div>
+</div>
+
+<script>
+    // PMTiles分析
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+    
+    const PMTILES_URL = 'http://localhost:8080/tiles/japan_all_levels.pmtiles';
+    const p = new pmtiles.PMTiles(PMTILES_URL);
+    protocol.add(p);
+    
+    p.getHeader().then(h => {
+        console.log('PMTiles Header:', h);
+        
+        p.getMetadata().then(metadata => {
+            console.log('PMTiles Metadata:', metadata);
+            
+            const results = document.getElementById('analysis-results');
+            results.innerHTML = `
+                <h2>ヘッダー情報</h2>
+                <ul>
+                    <li>Min Zoom: ${h.minZoom}</li>
+                    <li>Max Zoom: ${h.maxZoom}</li>
+                    <li>Center: [${h.centerLon}, ${h.centerLat}]</li>
+                    <li>Bounds: [${h.minLon}, ${h.minLat}, ${h.maxLon}, ${h.maxLat}]</li>
+                </ul>
+                
+                <h2>メタデータ</h2>
+                <pre>${JSON.stringify(metadata, null, 2)}</pre>
+                
+                <h2>Vector Layers</h2>
+                ${metadata?.vector_layers ? 
+                    metadata.vector_layers.map(layer => `
+                        <div>
+                            <h3>Layer: ${layer.id}</h3>
+                            <ul>
+                                <li>Description: ${layer.description || 'なし'}</li>
+                                <li>Min Zoom: ${layer.minzoom || '不明'}</li>
+                                <li>Max Zoom: ${layer.maxzoom || '不明'}</li>
+                                <li>Fields: ${JSON.stringify(layer.fields)}</li>
+                            </ul>
+                        </div>
+                    `).join('') 
+                    : 'No vector layers found'
+                }
+            `;
+        }).catch(err => {
+            console.error('Metadata error:', err);
+            document.getElementById('analysis-results').innerHTML = 
+                '<p>Error loading metadata: ' + err.message + '</p>';
+        });
+    }).catch(err => {
+        console.error('Header error:', err);
+        document.getElementById('analysis-results').innerHTML = 
+            '<p>Error loading PMTiles: ' + err.message + '</p>';
+    });
+</script>
+</body>
+</html>

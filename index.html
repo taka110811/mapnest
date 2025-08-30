@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>MapNest - PMTiles</title>
+    <title>Japan Administrative Hierarchy Map</title>
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.css' />
@@ -9,16 +9,40 @@
     <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
     <style>
         body, html, #map { height: 100%; margin: 0; padding: 0; }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        .zoom-info {
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .layer-info {
+            font-weight: bold;
+            color: #333;
+        }
     </style>
 </head>
 <body>
 <div id="map"></div>
+<div class="info-panel">
+    <div class="zoom-info">Zoom: <span id="current-zoom">5</span></div>
+    <div class="layer-info">Layer: <span id="current-layer">都道府県</span></div>
+</div>
 <script>
     // Add PMTiles protocol
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol('pmtiles', protocol.tile);
 
-    const PMTILES_URL = 'http://localhost:8080/tiles/output_with_props.pmtiles';
+    const PMTILES_URL = 'http://localhost:8080/tiles/japan_all_levels_unified.pmtiles';
     const p = new pmtiles.PMTiles(PMTILES_URL);
     protocol.add(p);
 
@@ -64,34 +88,113 @@
                         'minzoom': 0,
                         'maxzoom': 22
                     },
+                    // 地方レベル (Z3-6)
                     {
-                        'id': 'fill-layer',
+                        'id': 'regions-fill',
                         'type': 'fill',
                         'source': 'pmtiles_source',
-                        'source-layer': 'japan_ver85_fc_with_props',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 3,
+                        'maxzoom': 6,
+                        'filter': ['==', ['get', 'level'], 'region'],
                         'paint': {
-                            'fill-color': [
-                                'case',
-                                ['==', ['get', 'color_id'], 0], '#ff6b6b',  // 赤
-                                ['==', ['get', 'color_id'], 1], '#4ecdc4',  // ターコイズ
-                                ['==', ['get', 'color_id'], 2], '#45b7d1',  // 青
-                                ['==', ['get', 'color_id'], 3], '#96ceb4',  // 緑
-                                ['==', ['get', 'color_id'], 4], '#feca57',  // 黄色
-                                ['==', ['get', 'color_id'], 5], '#ff9ff3',  // ピンク
-                                ['==', ['get', 'color_id'], 6], '#a0e7e5',  // ライトブルー
-                                '#c7ecee'  // デフォルト（薄い青緑）
-                            ],
-                            'fill-opacity': 0.6
+                            'fill-color': ['get', 'color'],
+                            'fill-opacity': 0.7
                         }
                     },
                     {
-                        'id': 'stroke-layer',
+                        'id': 'regions-stroke',
                         'type': 'line',
                         'source': 'pmtiles_source',
-                        'source-layer': 'japan_ver85_fc_with_props',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 3,
+                        'maxzoom': 6,
+                        'filter': ['==', ['get', 'level'], 'region'],
+                        'paint': {
+                            'line-color': '#333333',
+                            'line-width': 2,
+                            'line-opacity': 0.8
+                        }
+                    },
+                    // 都道府県レベル (Z6-8)
+                    {
+                        'id': 'prefectures-fill',
+                        'type': 'fill',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 6,
+                        'maxzoom': 8,
+                        'filter': ['==', ['get', 'level'], 'prefecture'],
+                        'paint': {
+                            'fill-color': ['get', 'color'],
+                            'fill-opacity': 0.7
+                        }
+                    },
+                    {
+                        'id': 'prefectures-stroke',
+                        'type': 'line',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 6,
+                        'maxzoom': 8,
+                        'filter': ['==', ['get', 'level'], 'prefecture'],
+                        'paint': {
+                            'line-color': '#333333',
+                            'line-width': 1.5,
+                            'line-opacity': 0.8
+                        }
+                    },
+                    // 市区町村レベル (Z8-11)
+                    {
+                        'id': 'municipalities-fill',
+                        'type': 'fill',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 8,
+                        'maxzoom': 11,
+                        'filter': ['==', ['get', 'level'], 'municipality'],
+                        'paint': {
+                            'fill-color': ['get', 'color'],
+                            'fill-opacity': 0.7
+                        }
+                    },
+                    {
+                        'id': 'municipalities-stroke',
+                        'type': 'line',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 8,
+                        'maxzoom': 11,
+                        'filter': ['==', ['get', 'level'], 'municipality'],
                         'paint': {
                             'line-color': '#333333',
                             'line-width': 1,
+                            'line-opacity': 0.8
+                        }
+                    },
+                    // 詳細レベル (Z11+)
+                    {
+                        'id': 'detailed-fill',
+                        'type': 'fill',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 11,
+                        'filter': ['==', ['get', 'level'], 'detailed'],
+                        'paint': {
+                            'fill-color': ['get', 'color'],
+                            'fill-opacity': 0.7
+                        }
+                    },
+                    {
+                        'id': 'detailed-stroke',
+                        'type': 'line',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_unified',
+                        'minzoom': 11,
+                        'filter': ['==', ['get', 'level'], 'detailed'],
+                        'paint': {
+                            'line-color': '#333333',
+                            'line-width': 0.5,
                             'line-opacity': 0.8
                         }
                     }
@@ -113,41 +216,108 @@
                     const allFeatures = map.querySourceFeatures('pmtiles_source');
                     console.log('All features found:', allFeatures.length);
                     
-                    // 特定のソースレイヤーでもテスト
-                    const defaultFeatures = map.querySourceFeatures('pmtiles_source', { sourceLayer: 'default' });
-                    console.log('Default layer features:', defaultFeatures.length);
+                    // レイヤー構造とプロパティの詳細調査
+                    if (allFeatures.length > 0) {
+                        console.log('=== PMTiles Layer Analysis ===');
+                        console.log('Total features found:', allFeatures.length);
+                        console.log('Sample feature:', allFeatures[0]);
+                        console.log('Source layer from feature:', allFeatures[0].sourceLayer);
+                        console.log('Feature properties:', allFeatures[0].properties);
+                        
+                        // level プロパティの確認
+                        const levelValues = [...new Set(allFeatures.map(f => f.properties.level))].filter(Boolean);
+                        console.log('Available level values:', levelValues);
+                        
+                        // 各階層のフィーチャー数
+                        levelValues.forEach(level => {
+                            const count = allFeatures.filter(f => f.properties.level === level).length;
+                            console.log(`${level}: ${count} features`);
+                            
+                            // 各階層のサンプル
+                            const sample = allFeatures.find(f => f.properties.level === level);
+                            if (sample) {
+                                console.log(`${level} sample properties:`, sample.properties);
+                            }
+                        });
+                        
+                        // color プロパティの確認
+                        const colorValues = [...new Set(allFeatures.map(f => f.properties.color))].filter(Boolean);
+                        console.log('Available color values:', colorValues);
+                    }
                     
-                    // 他の可能性のあるレイヤー名をテスト
-                    const possibleLayers = ['japan', 'japan_ver85', 'boundaries', 'layer0', 'data'];
+                    // 可能性のあるソースレイヤー名を再確認
+                    const possibleLayers = ['default', 'japan', 'japan_ver85', 'boundaries', 'layer0', 'data', 'regions', 'prefectures', 'municipalities', 'detailed'];
                     possibleLayers.forEach(layerName => {
                         const layerFeatures = map.querySourceFeatures('pmtiles_source', { sourceLayer: layerName });
                         if (layerFeatures.length > 0) {
                             console.log(`Layer '${layerName}' has ${layerFeatures.length} features`);
-                            console.log(`Sample feature from ${layerName}:`, layerFeatures[0]);
                         }
                     });
-                    
-                    if (allFeatures.length > 0) {
-                        console.log('Sample feature:', allFeatures[0]);
-                        console.log('Source layer from feature:', allFeatures[0].sourceLayer);
-                    }
                 } catch (error) {
                     console.error('Error querying features:', error);
                 }
             }, 3000);
         });
 
-        map.on('error', (e) => {
-            console.error('Map error:', e);
+        // ズームレベル変更時の情報更新
+        function updateLayerInfo(zoom) {
+            let layerName = '';
+            if (zoom >= 3 && zoom < 6) {
+                layerName = '地方';
+            } else if (zoom >= 6 && zoom < 8) {
+                layerName = '都道府県';
+            } else if (zoom >= 8 && zoom < 11) {
+                layerName = '市区町村';
+            } else if (zoom >= 11) {
+                layerName = '詳細';
+            }
+            
+            document.getElementById('current-zoom').textContent = zoom.toFixed(1);
+            document.getElementById('current-layer').textContent = layerName;
+        }
+
+        map.on('load', () => {
+            updateLayerInfo(map.getZoom());
         });
 
-        map.on('sourcedata', (e) => {
-            if (e.sourceId === 'pmtiles_source') {
-                console.log('Source data event:', e);
-                if (e.isSourceLoaded) {
-                    console.log('PMTiles source loaded successfully');
+        map.on('zoom', () => {
+            updateLayerInfo(map.getZoom());
+        });
+
+        // クリック時の情報表示
+        map.on('click', (e) => {
+            const features = map.queryRenderedFeatures(e.point);
+            if (features.length > 0) {
+                const feature = features[0];
+                const props = feature.properties;
+                
+                let content = '<h3>地域情報</h3>';
+                if (props.level === 'region') {
+                    content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
+                    content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
+                } else if (props.level === 'prefecture') {
+                    content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
+                    content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
+                    content += `<p><strong>JISコード:</strong> ${props.jis_code}</p>`;
+                } else if (props.level === 'municipality') {
+                    content += `<p><strong>市区町村:</strong> ${props.municipality_jp}</p>`;
+                    content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
+                    content += `<p><strong>コード:</strong> ${props.jcode}</p>`;
+                } else if (props.level === 'detailed') {
+                    content += `<p><strong>地域:</strong> ${props.SIKUCHOSON || 'N/A'}</p>`;
+                    content += `<p><strong>都道府県:</strong> ${props.KEN || 'N/A'}</p>`;
+                    content += `<p><strong>人口:</strong> ${props.P_NUM?.toLocaleString() || 'N/A'}</p>`;
                 }
+
+                new maplibregl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(content)
+                    .addTo(map);
             }
+        });
+
+        map.on('error', (e) => {
+            console.error('Map error:', e);
         });
     }).catch(error => {
         console.error('Failed to load PMTiles header:', error);
