@@ -44,6 +44,12 @@
             style: {
                 version: 8,
                 sources: {
+                    'osm-raster': {
+                        type: 'raster',
+                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    },
                     'pmtiles_source': {
                         type: 'vector',
                         url: `pmtiles://${PMTILES_URL}`,
@@ -52,13 +58,20 @@
                 },
                 layers: [
                     {
+                        'id': 'osm-tiles',
+                        'type': 'raster',
+                        'source': 'osm-raster',
+                        'minzoom': 0,
+                        'maxzoom': 22
+                    },
+                    {
                         'id': 'fill-layer',
                         'type': 'fill',
                         'source': 'pmtiles_source',
                         'source-layer': 'japan_ver85_fc',
                         'paint': {
-                            'fill-color': '#088',
-                            'fill-opacity': 0.8
+                            'fill-color': '#ff0000',
+                            'fill-opacity': 0.3
                         }
                     },
                     {
@@ -67,8 +80,8 @@
                         'source': 'pmtiles_source',
                         'source-layer': 'japan_ver85_fc',
                         'paint': {
-                            'line-color': '#000',
-                            'line-width': 1
+                            'line-color': '#ff0000',
+                            'line-width': 2
                         }
                     }
                 ]
