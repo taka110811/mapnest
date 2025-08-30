@@ -1,42 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>MapNest</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet">
+    <title>MapNest - PMTiles</title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.css' />
+    <script src='https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.js'></script>
+    <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
     <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        body, html, #map { height: 100%; margin: 0; padding: 0; }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <script>
-        var map = new maplibregl.Map({
+<div id="map"></div>
+<script>
+    // Add PMTiles protocol
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+
+    const PMTILES_URL = 'http://localhost:8080/tiles/output.pmtiles';
+    const p = new pmtiles.PMTiles(PMTILES_URL);
+    protocol.add(p);
+
+    // Fetch header and create map
+    p.getHeader().then(h => {
+        console.log('PMTiles header:', h);
+        
+        // メタデータも取得
+        p.getMetadata().then(metadata => {
+            console.log('PMTiles metadata:', metadata);
+            if (metadata && metadata.vector_layers) {
+                console.log('Available vector layers:', metadata.vector_layers);
+                metadata.vector_layers.forEach(layer => {
+                    console.log(`Layer: ${layer.id}, Fields:`, layer.fields);
+                });
+            }
+        }).catch(err => console.error('Metadata error:', err));
+        
+        const map = new maplibregl.Map({
             container: 'map',
+            zoom: 5,
+            center: [138.2529, 36.2048],
             style: {
                 version: 8,
                 sources: {
-                    'raster-tiles': {
-                        type: 'raster',
-                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                        tileSize: 256,
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    'pmtiles_source': {
+                        type: 'vector',
+                        url: `pmtiles://${PMTILES_URL}`,
+                        attribution: 'PMTiles Vector Data'
                     }
                 },
-                layers: [{
-                    id: 'simple-tiles',
-                    type: 'raster',
-                    source: 'raster-tiles',
-                    minzoom: 0,
-                    maxzoom: 22
-                }]
-            },
-            center: [139.6917, 35.6895],
-            zoom: 10
+                layers: [
+                    {
+                        'id': 'fill-layer',
+                        'type': 'fill',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_ver85_fc',
+                        'paint': {
+                            'fill-color': '#088',
+                            'fill-opacity': 0.8
+                        }
+                    },
+                    {
+                        'id': 'stroke-layer',
+                        'type': 'line',
+                        'source': 'pmtiles_source',
+                        'source-layer': 'japan_ver85_fc',
+                        'paint': {
+                            'line-color': '#000',
+                            'line-width': 1
+                        }
+                    }
+                ]
+            }
         });
-    </script>
+
+        map.on('load', () => {
+            console.log('Map loaded successfully');
+            
+            // ソース情報を確認
+            const source = map.getSource('pmtiles_source');
+            console.log('Source:', source);
+            
+            // 利用可能なレイヤーを確認
+            setTimeout(() => {
+                try {
+                    // ソースレイヤーを指定せずに全フィーチャーをクエリ
+                    const allFeatures = map.querySourceFeatures('pmtiles_source');
+                    console.log('All features found:', allFeatures.length);
+                    
+                    // 特定のソースレイヤーでもテスト
+                    const defaultFeatures = map.querySourceFeatures('pmtiles_source', { sourceLayer: 'default' });
+                    console.log('Default layer features:', defaultFeatures.length);
+                    
+                    // 他の可能性のあるレイヤー名をテスト
+                    const possibleLayers = ['japan', 'japan_ver85', 'boundaries', 'layer0', 'data'];
+                    possibleLayers.forEach(layerName => {
+                        const layerFeatures = map.querySourceFeatures('pmtiles_source', { sourceLayer: layerName });
+                        if (layerFeatures.length > 0) {
+                            console.log(`Layer '${layerName}' has ${layerFeatures.length} features`);
+                            console.log(`Sample feature from ${layerName}:`, layerFeatures[0]);
+                        }
+                    });
+                    
+                    if (allFeatures.length > 0) {
+                        console.log('Sample feature:', allFeatures[0]);
+                        console.log('Source layer from feature:', allFeatures[0].sourceLayer);
+                    }
+                } catch (error) {
+                    console.error('Error querying features:', error);
+                }
+            }, 3000);
+        });
+
+        map.on('error', (e) => {
+            console.error('Map error:', e);
+        });
+
+        map.on('sourcedata', (e) => {
+            if (e.sourceId === 'pmtiles_source') {
+                console.log('Source data event:', e);
+                if (e.isSourceLoaded) {
+                    console.log('PMTiles source loaded successfully');
+                }
+            }
+        });
+    }).catch(error => {
+        console.error('Failed to load PMTiles header:', error);
+    });
+</script>
 </body>
 </html>
