@@ -1,12 +1,23 @@
-// Yakiniku restaurant search functionality
+/**
+ * 焼肉店検索機能
+ * OpenStreetMap Overpass APIを使用した焼肉店の検索・表示機能を提供
+ * @namespace YakinikuSearch
+ */
 const YakinikuSearch = {
-    // Search state
+    /** @type {number} 最後に焼肉店データを取得したズームレベル */
     lastYakinikuZoom: -1,
+    /** @type {boolean} 焼肉店データが読み込まれているかのフラグ */
     yakinikuDataLoaded: false,
+    /** @type {string|null} 最後の検索センター座標 */
     lastSearchCenter: null,
+    /** @type {number|null} 検索実行のタイムアウトID */
     searchTimeout: null,
     
-    // Search range calculation based on zoom level
+    /**
+     * ズームレベルに基づいて検索範囲を計算
+     * @param {number} zoom - 現在のズームレベル
+     * @returns {number} 検索範囲（度数）
+     */
     getSearchRange(zoom) {
         if (zoom >= 12) return 0.015; // 約1.5km
         if (zoom >= 10) return 0.03;  // 約3km
@@ -14,7 +25,11 @@ const YakinikuSearch = {
         return 0.07;                  // 約7km
     },
     
-    // Load yakiniku shops from Overpass API
+    /**
+     * Overpass APIから焼肉店データを取得してマップに表示
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     * @returns {Promise<void>}
+     */
     async loadYakinikuShops(map) {
         console.log('焼肉店データの取得を開始...');
         
@@ -51,7 +66,14 @@ const YakinikuSearch = {
         }
     },
     
-    // Build Overpass API query
+    /**
+     * Overpass APIクエリを構築
+     * @param {number} south - 南端座標
+     * @param {number} west - 西端座標
+     * @param {number} north - 北端座標
+     * @param {number} east - 東端座標
+     * @returns {string} Overpass APIクエリ文字列
+     */
     buildOverpassQuery(south, west, north, east) {
         return `
             [out:json][timeout:15];
@@ -65,7 +87,11 @@ const YakinikuSearch = {
         `;
     },
     
-    // Query Overpass API
+    /**
+     * Overpass APIにクエリを送信
+     * @param {string} query - 実行するOverpassクエリ
+     * @returns {Promise<Object>} APIレスポンスデータ
+     */
     async queryOverpassAPI(query) {
         console.log('Overpass APIクエリ実行中（画面中央付近）...');
         console.log('実際のクエリ:', query);
@@ -80,7 +106,11 @@ const YakinikuSearch = {
         return data;
     },
     
-    // Process Overpass API response into GeoJSON features
+    /**
+     * Overpass APIレスポンスをGeoJSONフィーチャーに変換
+     * @param {Object} data - Overpass APIレスポンスデータ
+     * @returns {Array<Object>} GeoJSONフィーチャー配列
+     */
     processOverpassResponse(data) {
         if (!data.elements || data.elements.length === 0) {
             console.log('画面中央付近に焼肉店が見つかりませんでした');
@@ -92,7 +122,11 @@ const YakinikuSearch = {
             .map(element => this.elementToFeature(element));
     },
     
-    // Check if element has valid coordinates
+    /**
+     * 要素が有効な座標を持っているかチェック
+     * @param {Object} element - OSM要素オブジェクト
+     * @returns {boolean} 有効な座標を持つかどうか
+     */
     isValidElement(element) {
         // ノードの場合は直接座標をチェック
         if (element.type === 'node' && element.lat && element.lon) {
@@ -105,7 +139,11 @@ const YakinikuSearch = {
         return false;
     },
     
-    // Convert OSM element to GeoJSON feature
+    /**
+     * OSM要素をGeoJSONフィーチャーに変換
+     * @param {Object} element - OSM要素オブジェクト
+     * @returns {Object} GeoJSONフィーチャー
+     */
     elementToFeature(element) {
         let coords;
         if (element.type === 'node') {
@@ -130,7 +168,10 @@ const YakinikuSearch = {
         };
     },
     
-    // Update search area visualization
+    /**
+     * 検索範囲の可視化を更新
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     updateSearchArea(map) {
         const currentZoom = map.getZoom();
         const center = map.getCenter();
@@ -156,7 +197,12 @@ const YakinikuSearch = {
         }
     },
     
-    // Create search area feature
+    /**
+     * 検索範囲フィーチャーを作成
+     * @param {maplibregl.LngLat} center - 中心座標
+     * @param {number} range - 検索範囲（度数）
+     * @returns {Object} GeoJSONフィーチャー
+     */
     createSearchAreaFeature(center, range) {
         const south = center.lat - range;
         const west = center.lng - range;
@@ -181,7 +227,12 @@ const YakinikuSearch = {
         };
     },
     
-    // Debounced search execution
+    /**
+     * デバウンス機能付きの検索実行
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     * @param {maplibregl.LngLat} center - 中心座標
+     * @param {number} currentZoom - 現在のズームレベル
+     */
     debounceSearch(map, center, currentZoom) {
         const currentCenter = `${center.lat.toFixed(6)},${center.lng.toFixed(6)}`;
         if (currentCenter !== this.lastSearchCenter) {
@@ -202,7 +253,10 @@ const YakinikuSearch = {
         }
     },
     
-    // Clear yakiniku data when zooming out
+    /**
+     * ズームアウト時に焼肉店データをクリア
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     clearYakinikuData(map) {
         console.log('ズームアウト - 焼肉店データをクリアします');
         map.getSource('yakiniku-pins').setData({

@@ -1,11 +1,21 @@
 
-// Main application initialization
+/**
+ * メインアプリケーションの初期化
+ * アプリケーションのライフサイクルとPMTilesマップの初期化を管理
+ * @namespace App
+ */
 const App = {
+    /** @type {maplibregl.Map|null} MapLibre GLマップインスタンス */
     map: null,
+    /** @type {pmtiles.Protocol|null} PMTilesプロトコルインスタンス */
     protocol: null,
+    /** @type {pmtiles.PMTiles|null} PMTilesデータソースインスタンス */
     pmtiles: null,
     
-    // Initialize the application
+    /**
+     * アプリケーションを初期化
+     * @returns {Promise<void>}
+     */
     async init() {
         try {
             await this.setupPMTiles();
@@ -16,7 +26,10 @@ const App = {
         }
     },
     
-    // Setup PMTiles protocol and data source
+    /**
+     * PMTilesプロトコルとデータソースを設定
+     * @returns {Promise<void>}
+     */
     async setupPMTiles() {
         // Add PMTiles protocol
         this.protocol = new pmtiles.Protocol();
@@ -30,7 +43,10 @@ const App = {
         await this.loadPMTilesMetadata();
     },
     
-    // Load PMTiles metadata
+    /**
+     * PMTilesメタデータを読み込み
+     * @returns {Promise<void>}
+     */
     async loadPMTilesMetadata() {
         try {
             const header = await this.pmtiles.getHeader();
@@ -50,7 +66,10 @@ const App = {
         }
     },
     
-    // Create and configure the map
+    /**
+     * マップを作成して設定
+     * @returns {Promise<maplibregl.Map>} 初期化されたマップインスタンス
+     */
     async createMap() {
         const mapStyle = MapConfig.getMapStyle(MapConfig.PMTILES_URL);
         
@@ -71,19 +90,26 @@ const App = {
         });
     },
     
-    // Setup all event listeners
+    /**
+     * すべてのイベントリスナーを設定
+     */
     setupEventListeners() {
         EventHandlers.setupEventListeners(this.map);
         EventHandlers.setupLoadHandlers(this.map);
     },
     
-    // Get map instance (for external access)
+    /**
+     * マップインスタンスを取得（外部アクセス用）
+     * @returns {maplibregl.Map|null} マップインスタンス
+     */
     getMap() {
         return this.map;
     }
 };
 
-// Initialize app when DOM is ready
+/**
+ * DOMの読み込みが完了したらアプリケーションを初期化
+ */
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });

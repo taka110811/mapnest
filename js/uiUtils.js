@@ -1,6 +1,13 @@
-// UI utilities and helper functions
+/**
+ * UIユーティリティとヘルパー関数
+ * マップのUI要素、ポップアップ、ユーザーインタラクションの管理
+ * @namespace UIUtils
+ */
 const UIUtils = {
-    // Update layer information in the info panel
+    /**
+     * 情報パネルのレイヤー情報を更新
+     * @param {number} zoom - 現在のズームレベル
+     */
     updateLayerInfo(zoom) {
         let layerName = '';
         if (zoom >= 3 && zoom < 6) {
@@ -17,7 +24,11 @@ const UIUtils = {
         document.getElementById('current-layer').textContent = layerName;
     },
     
-    // Create popup content for administrative areas
+    /**
+     * 行政区域用のポップアップコンテンツを作成
+     * @param {Object} props - フィーチャーのプロパティ
+     * @returns {string} HTML文字列のポップアップコンテンツ
+     */
     createAdministrativePopup(props) {
         let content = '<h3>地域情報</h3>';
         
@@ -46,7 +57,11 @@ const UIUtils = {
         return content;
     },
     
-    // Create popup content for yakiniku restaurants
+    /**
+     * 焼肉店用のポップアップコンテンツを作成
+     * @param {Object} props - 焼肉店フィーチャーのプロパティ
+     * @returns {string} HTML文字列のポップアップコンテンツ
+     */
     createYakinikuPopup(props) {
         let content = `<div style="font-family: Arial, sans-serif;">`;
         content += `<h3 style="margin: 0 0 8px 0; color: #FF4500;">🥩 ${props.name}</h3>`;
@@ -68,7 +83,11 @@ const UIUtils = {
         return content;
     },
     
-    // Calculate bounds for a feature geometry
+    /**
+     * フィーチャージオメトリの境界を計算
+     * @param {Object} feature - GeoJSONフィーチャー
+     * @returns {maplibregl.LngLatBounds} 境界ボックス
+     */
     calculateFeatureBounds(feature) {
         const bounds = new maplibregl.LngLatBounds();
         
@@ -87,7 +106,12 @@ const UIUtils = {
         return bounds;
     },
     
-    // Determine zoom behavior for administrative levels
+    /**
+     * 行政レベルに対するズーム動作を決定
+     * @param {Object} props - フィーチャーのプロパティ
+     * @param {number} currentZoom - 現在のズームレベル
+     * @returns {Object} ズーム動作オブジェクト {shouldZoom, targetZoom}
+     */
     getZoomBehavior(props, currentZoom) {
         let targetZoom = currentZoom + 2;
         let shouldZoom = false;
@@ -107,7 +131,11 @@ const UIUtils = {
         return { shouldZoom, targetZoom };
     },
     
-    // Set cursor style for interactive elements
+    /**
+     * インタラクティブ要素のカーソルスタイルを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     * @param {string} cursorType - カーソルタイプ ('pointer', '', 'grab'など)
+     */
     setCursor(map, cursorType) {
         map.getCanvas().style.cursor = cursorType;
     }

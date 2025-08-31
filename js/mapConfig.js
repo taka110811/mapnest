@@ -1,15 +1,24 @@
-// Map configuration and layer definitions
+/**
+ * マップ設定とレイヤー定義
+ * MapLibre GL JSマップのスタイリングとレイヤー管理のための中央集約設定
+ * @namespace MapConfig
+ */
 const MapConfig = {
+    /** @type {string} PMTilesファイルのURL */
     PMTILES_URL: 'http://localhost:8080/tiles/japan_all_levels_unified.pmtiles',
     
-    // Map initialization options
+    /** @type {Object} マップ初期化オプション */
     mapOptions: {
         container: 'map',
         zoom: 5,
         center: [138.2529, 36.2048]
     },
     
-    // Base map style configuration
+    /**
+     * ベースマップスタイルの設定を取得
+     * @param {string} pmtilesUrl - PMTilesファイルのURL
+     * @returns {Object} MapLibre GL JSスタイル仕様
+     */
     getMapStyle(pmtilesUrl) {
         return {
             version: 8,
@@ -56,7 +65,10 @@ const MapConfig = {
         };
     },
     
-    // Administrative boundary layers
+    /**
+     * 行政区域境界レイヤーを取得
+     * @returns {Array} 行政区域レイヤー配列（地方、都道府県、市区町村、詳細レベル）
+     */
     getAdministrativeLayers() {
         return [
             // 地方レベル (Z3-6)
@@ -172,7 +184,10 @@ const MapConfig = {
         ];
     },
     
-    // Yakiniku restaurant layers
+    /**
+     * 焼肉店表示レイヤーを取得
+     * @returns {Array} 焼肉店ピンとラベルのレイヤー配列
+     */
     getYakinikuLayers() {
         return [
             {
@@ -199,7 +214,10 @@ const MapConfig = {
         ];
     },
     
-    // Search area visualization layers
+    /**
+     * 検索範囲可視化レイヤーを取得
+     * @returns {Array} 検索範囲の塗りつぶしと枠線レイヤー配列
+     */
     getSearchAreaLayers() {
         return [
             {
@@ -224,6 +242,6 @@ const MapConfig = {
         ];
     },
     
-    // Interactive layer IDs
+    /** @type {Array<string>} インタラクティブなレイヤーのID一覧 */
     interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'detailed-fill', 'yakiniku-pins']
 };

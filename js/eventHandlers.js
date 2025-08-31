@@ -1,6 +1,13 @@
-// Event handlers for map interactions
+/**
+ * マップインタラクションのイベントハンドラー
+ * マップのズーム、クリック、マウスイベントの管理
+ * @namespace EventHandlers
+ */
 const EventHandlers = {
-    // Setup all map event listeners
+    /**
+     * すべてのマップイベントリスナーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupEventListeners(map) {
         this.setupZoomHandler(map);
         this.setupMoveHandler(map);
@@ -9,7 +16,10 @@ const EventHandlers = {
         this.setupErrorHandler(map);
     },
     
-    // Zoom event handler
+    /**
+     * ズームイベントハンドラーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupZoomHandler(map) {
         map.on('zoom', () => {
             const currentZoom = map.getZoom();
@@ -23,14 +33,20 @@ const EventHandlers = {
         });
     },
     
-    // Move event handler
+    /**
+     * 移動イベントハンドラーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupMoveHandler(map) {
         map.on('move', () => {
             YakinikuSearch.updateSearchArea(map);
         });
     },
     
-    // Click event handlers
+    /**
+     * クリックイベントハンドラーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupClickHandlers(map) {
         // General map click handler
         map.on('click', (e) => {
@@ -46,7 +62,12 @@ const EventHandlers = {
         });
     },
     
-    // Handle feature click (administrative areas)
+    /**
+     * フィーチャークリックの処理（行政区域）
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     * @param {maplibregl.MapMouseEvent} e - マウスイベント
+     * @param {Object} feature - クリックされたフィーチャー
+     */
     handleFeatureClick(map, e, feature) {
         const props = feature.properties;
         const currentZoom = map.getZoom();
@@ -70,7 +91,10 @@ const EventHandlers = {
         }
     },
     
-    // Handle yakiniku pin click
+    /**
+     * 焼肉店ピンクリックの処理
+     * @param {maplibregl.MapMouseEvent} e - マウスイベント
+     */
     handleYakinikuClick(e) {
         const feature = e.features[0];
         const props = feature.properties;
@@ -82,7 +106,10 @@ const EventHandlers = {
             .addTo(map);
     },
     
-    // Mouse event handlers
+    /**
+     * マウスイベントハンドラーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupMouseHandlers(map) {
         // Mouse enter handler
         map.on('mouseenter', MapConfig.interactiveLayers, () => {
@@ -95,14 +122,20 @@ const EventHandlers = {
         });
     },
     
-    // Error event handler
+    /**
+     * エラーイベントハンドラーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupErrorHandler(map) {
         map.on('error', (e) => {
             console.error('Map error:', e);
         });
     },
     
-    // Setup load event handlers
+    /**
+     * ロードイベントハンドラーを設定
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     setupLoadHandlers(map) {
         map.on('load', () => {
             console.log('Map loaded successfully');
@@ -111,7 +144,10 @@ const EventHandlers = {
         });
     },
     
-    // Debug map features (for development)
+    /**
+     * マップフィーチャーのデバッグ（開発用）
+     * @param {maplibregl.Map} map - MapLibre GLマップインスタンス
+     */
     debugMapFeatures(map) {
         const source = map.getSource('pmtiles_source');
         console.log('Source:', source);
