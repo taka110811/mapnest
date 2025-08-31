@@ -88,11 +88,10 @@ const EventHandlers = {
         const zoomBehavior = UIUtils.getZoomBehavior(props, currentZoom);
         
         if (zoomBehavior.shouldZoom) {
-            // ズームインアニメーション
-            const bounds = UIUtils.calculateFeatureBounds(feature);
-            map.fitBounds(bounds, {
-                padding: 50,
-                maxZoom: zoomBehavior.targetZoom,
+            // クリック位置を中心にズームイン
+            map.easeTo({
+                center: e.lngLat,
+                zoom: zoomBehavior.targetZoom,
                 duration: 300
             });
         } else {
