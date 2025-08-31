@@ -4,8 +4,6 @@
  * @namespace YakinikuSearch
  */
 const YakinikuSearch = {
-    /** @type {number} 最後に焼肉店データを取得したズームレベル */
-    lastYakinikuZoom: -1,
     /** @type {boolean} 焼肉店データが読み込まれているかのフラグ */
     yakinikuDataLoaded: false,
     /** @type {string|null} 最後の検索センター座標 */

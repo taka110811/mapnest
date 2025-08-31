@@ -96,14 +96,6 @@ const App = {
     setupEventListeners() {
         EventHandlers.setupEventListeners(this.map);
         EventHandlers.setupLoadHandlers(this.map);
-    },
-    
-    /**
-     * マップインスタンスを取得（外部アクセス用）
-     * @returns {maplibregl.Map|null} マップインスタンス
-     */
-    getMap() {
-        return this.map;
     }
 };
 
