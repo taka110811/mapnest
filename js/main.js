@@ -96,6 +96,7 @@ const App = {
     setupEventListeners() {
         EventHandlers.setupEventListeners(this.map);
         EventHandlers.setupLoadHandlers(this.map);
+        SearchUI.init(this.map);
     }
 };
 

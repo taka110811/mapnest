@@ -24,11 +24,11 @@ const EventHandlers = {
         map.on('zoom', () => {
             const currentZoom = map.getZoom();
             UIUtils.updateLayerInfo(currentZoom);
-            YakinikuSearch.updateSearchArea(map);
+            GenericSearch.updateSearchArea(map);
             
-            // ズームアウトしたら焼肉店データをクリア
-            if (currentZoom <= 10 && YakinikuSearch.yakinikuDataLoaded) {
-                YakinikuSearch.clearYakinikuData(map);
+            // ズームアウトしたら検索データをクリア
+            if (currentZoom <= 10 && GenericSearch.searchDataLoaded) {
+                GenericSearch.clearSearchData(map);
             }
         });
     },
@@ -39,7 +39,7 @@ const EventHandlers = {
      */
     setupMoveHandler(map) {
         map.on('move', () => {
-            YakinikuSearch.updateSearchArea(map);
+            GenericSearch.updateSearchArea(map);
         });
     },
     
@@ -56,16 +56,17 @@ const EventHandlers = {
             }
         });
         
-        // Yakiniku pin click handler
-        map.on('click', 'yakiniku-pins', (e) => {
+        // Search result pin click handler
+        map.on('click', 'search-pins', (e) => {
             const feature = e.features[0];
             const props = feature.properties;
             
             let content = `<div style="font-family: Arial, sans-serif;">`;
-            content += `<h3 style="margin: 0 0 8px 0; color: #FF4500;">🥩 ${props.name}</h3>`;
+            content += `<h3 style="margin: 0 0 8px 0; color: #333;">${props.icon} ${props.name}</h3>`;
+            if (props.category) content += `<p style="margin: 2px 0;"><strong>カテゴリー:</strong> ${props.category}</p>`;
+            if (props.cuisine) content += `<p style="margin: 2px 0;"><strong>料理:</strong> ${props.cuisine}</p>`;
             if (props.address) content += `<p style="margin: 2px 0;"><strong>住所:</strong> ${props.address}</p>`;
             if (props.phone) content += `<p style="margin: 2px 0;"><strong>電話:</strong> ${props.phone}</p>`;
-            if (props.cuisine && props.cuisine !== 'unknown') content += `<p style="margin: 2px 0;"><strong>料理:</strong> ${props.cuisine}</p>`;
             if (props.website) content += `<p style="margin: 2px 0;"><a href="${props.website}" target="_blank">ウェブサイト</a></p>`;
             content += `</div>`;
             

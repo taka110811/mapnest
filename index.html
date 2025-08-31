@@ -16,8 +16,39 @@
     <div class="layer-info">Layer: <span id="current-layer">都道府県</span></div>
     <div class="clickable-hint">💡 クリックで次の階層へ</div>
 </div>
+<div class="search-panel">
+    <h3>🔍 検索</h3>
+    <select id="category-select">
+        <option value="">カテゴリーを選択</option>
+        <option value="restaurant">レストラン</option>
+        <option value="cafe">カフェ</option>
+        <option value="convenience">コンビニ</option>
+        <option value="supermarket">スーパー</option>
+        <option value="hospital">病院</option>
+        <option value="school">学校</option>
+        <option value="bank">銀行</option>
+        <option value="gas_station">ガソリンスタンド</option>
+        <option value="pharmacy">薬局</option>
+        <option value="post_office">郵便局</option>
+    </select>
+    <select id="cuisine-select" style="display: none;">
+        <option value="">料理ジャンル（任意）</option>
+        <option value="japanese">和食</option>
+        <option value="chinese">中華</option>
+        <option value="italian">イタリアン</option>
+        <option value="french">フレンチ</option>
+        <option value="yakiniku">焼肉</option>
+        <option value="ramen">ラーメン</option>
+        <option value="sushi">寿司</option>
+        <option value="pizza">ピザ</option>
+        <option value="korean">韓国料理</option>
+    </select>
+    <button id="search-button" disabled>検索実行</button>
+    <div id="search-results" class="search-results"></div>
+</div>
 <script src="js/mapConfig.js"></script>
-<script src="js/yakinikuSearch.js"></script>
+<script src="js/genericSearch.js"></script>
+<script src="js/searchUI.js"></script>
 <script src="js/uiUtils.js"></script>
 <script src="js/eventHandlers.js"></script>
 <script src="js/main.js"></script>

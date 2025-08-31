@@ -35,7 +35,7 @@ const MapConfig = {
                     url: `pmtiles://${pmtilesUrl}`,
                     attribution: 'PMTiles Vector Data'
                 },
-                'yakiniku-pins': {
+                'search-pins': {
                     type: 'geojson',
                     data: {
                         type: 'FeatureCollection',
@@ -59,7 +59,7 @@ const MapConfig = {
                     'maxzoom': 22
                 },
                 ...this.getAdministrativeLayers(),
-                ...this.getYakinikuLayers(),
+                ...this.getSearchPinLayers(),
                 ...this.getSearchAreaLayers()
             ]
         };
@@ -185,15 +185,15 @@ const MapConfig = {
     },
     
     /**
-     * 焼肉店表示レイヤーを取得
-     * @returns {Array} 焼肉店ピンとラベルのレイヤー配列
+     * 検索結果ピン表示レイヤーを取得
+     * @returns {Array} 検索結果ピンとラベルのレイヤー配列
      */
-    getYakinikuLayers() {
+    getSearchPinLayers() {
         return [
             {
-                'id': 'yakiniku-pins',
+                'id': 'search-pins',
                 'type': 'circle',
-                'source': 'yakiniku-pins',
+                'source': 'search-pins',
                 'paint': {
                     'circle-radius': 6,
                     'circle-color': '#FF4500',
@@ -202,11 +202,11 @@ const MapConfig = {
                 }
             },
             {
-                'id': 'yakiniku-labels',
+                'id': 'search-labels',
                 'type': 'symbol',
-                'source': 'yakiniku-pins',
+                'source': 'search-pins',
                 'layout': {
-                    'text-field': '🥩',
+                    'text-field': '📍',
                     'text-size': 16,
                     'text-offset': [0, 0]
                 }
@@ -243,5 +243,5 @@ const MapConfig = {
     },
     
     /** @type {Array<string>} インタラクティブなレイヤーのID一覧 */
-    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'detailed-fill', 'yakiniku-pins']
+    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'detailed-fill', 'search-pins']
 };

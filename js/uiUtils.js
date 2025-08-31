@@ -58,22 +58,25 @@ const UIUtils = {
     },
     
     /**
-     * 焼肉店用のポップアップコンテンツを作成
-     * @param {Object} props - 焼肉店フィーチャーのプロパティ
+     * 検索結果用のポップアップコンテンツを作成
+     * @param {Object} props - 検索結果フィーチャーのプロパティ
      * @returns {string} HTML文字列のポップアップコンテンツ
      */
-    createYakinikuPopup(props) {
+    createSearchResultPopup(props) {
         let content = `<div style="font-family: Arial, sans-serif;">`;
-        content += `<h3 style="margin: 0 0 8px 0; color: #FF4500;">🥩 ${props.name}</h3>`;
+        content += `<h3 style="margin: 0 0 8px 0; color: #333;">${props.icon} ${props.name}</h3>`;
         
+        if (props.category) {
+            content += `<p style="margin: 2px 0;"><strong>カテゴリー:</strong> ${props.category}</p>`;
+        }
+        if (props.cuisine) {
+            content += `<p style="margin: 2px 0;"><strong>料理:</strong> ${props.cuisine}</p>`;
+        }
         if (props.address) {
             content += `<p style="margin: 2px 0;"><strong>住所:</strong> ${props.address}</p>`;
         }
         if (props.phone) {
             content += `<p style="margin: 2px 0;"><strong>電話:</strong> ${props.phone}</p>`;
-        }
-        if (props.cuisine && props.cuisine !== 'unknown') {
-            content += `<p style="margin: 2px 0;"><strong>料理:</strong> ${props.cuisine}</p>`;
         }
         if (props.website) {
             content += `<p style="margin: 2px 0;"><a href="${props.website}" target="_blank">ウェブサイト</a></p>`;
