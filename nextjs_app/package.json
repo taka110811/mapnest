@@ -5,9 +5,12 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint",
+    "upload-pmtiles": "node scripts/upload-pmtiles.js"
   },
   "dependencies": {
+    "@vercel/blob": "^1.1.1",
     "maplibre-gl": "^5.7.0",
     "next": "15.5.2",
     "pmtiles": "^4.3.0",
