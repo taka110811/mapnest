@@ -107,18 +107,30 @@ npm run dev
 
 3. **PMTilesファイルの配置**
    
-   **Option A: Vercel Functions API Route**
-   ```javascript
-   // pages/api/tiles/[...path].js
-   export default function handler(req, res) {
-     // PMTilesファイルを配信するAPIルート
-   }
-   ```
+   **Option A: Vercel Functions API Route（推奨）**
+   
+   1. PMTilesファイルを配置:
+      ```bash
+      # Next.jsプロジェクトの public/tiles/ に配置
+      cp tiles/japan_all_levels_unified.pmtiles nextjs_app/public/tiles/
+      ```
+   
+   2. API Routeが自動的にファイルを配信:
+      ```javascript
+      // src/app/api/tiles/[...path]/route.js
+      // 本番環境では /api/tiles/* パスでアクセス可能
+      ```
 
-   **Option B: 外部CDN**
+   **Option B: 外部CDN配信**
    ```javascript
    // src/services/mapConfig.js
    PMTILES_URL: 'https://your-cdn.com/tiles/japan_all_levels_unified.pmtiles'
+   ```
+   
+   **Option C: Vercel Blob Storage**
+   ```bash
+   npm install @vercel/blob
+   # Vercel BlobにアップロードしてURLを取得
    ```
 
 ### 手動デプロイ（任意のプラットフォーム）

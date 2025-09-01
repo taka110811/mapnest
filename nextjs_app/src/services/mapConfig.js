@@ -5,7 +5,9 @@
  */
 const MapConfig = {
     /** @type {string} PMTilesファイルのURL */
-    PMTILES_URL: 'http://localhost:8080/tiles/japan_all_levels_unified.pmtiles',
+    PMTILES_URL: process.env.NODE_ENV === 'production' 
+        ? '/api/tiles/japan_all_levels_unified.pmtiles'
+        : 'http://localhost:8080/tiles/japan_all_levels_unified.pmtiles',
     
     /** @type {Object} マップ初期化オプション */
     mapOptions: {
