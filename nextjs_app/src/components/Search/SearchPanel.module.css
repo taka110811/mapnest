@@ -75,26 +75,48 @@
     font-size: 0.9em;
 }
 
-.selectButton {
-    background: #007bff !important;
-    color: white !important;
-    margin-bottom: 5px;
+.selectedMunicipality {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
 }
 
-.selectButton:hover {
-    background: #0056b3 !important;
+.selectedText {
+    font-weight: bold;
+    color: #1565c0;
+    flex: 1;
+}
+
+.noSelection {
+    background: #f5f5f5;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    padding: 8px 10px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 8px;
 }
 
 .clearButton {
-    background: #6c757d !important;
+    background: #f44336 !important;
     color: white !important;
-    font-size: 0.8em;
-    padding: 4px 8px !important;
-    margin-left: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 2px 6px !important;
+    min-width: auto;
+    width: auto;
+    border-radius: 50%;
+    line-height: 1;
 }
 
 .clearButton:hover {
-    background: #545b62 !important;
+    background: #d32f2f !important;
 }
 
 .searchModeInfo {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useSearch from '../../hooks/useSearch';
 import { categoryConfig } from '../../services/overpassApi';
 import styles from './SearchPanel.module.css';
@@ -35,11 +35,10 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
         }
     }, [map, clearSearchData]);
 
-    // 市区町村クリック処理を追加
-    const handleMunicipalityClick = useCallback(() => {
+    // 市区町村自動選択処理
+    const setupMunicipalityAutoSelection = useCallback(() => {
         if (!map) return;
         
-        // 一度だけクリックイベントを登録
         const clickHandler = (e) => {
             const features = map.queryRenderedFeatures(e.point, {
                 layers: ['municipalities-fill']
@@ -47,21 +46,31 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
             
             if (features.length > 0) {
                 const props = features[0].properties;
-                setSelectedMunicipality({
+                const newSelection = {
                     prefecture: props.prefecture_jp,
                     municipality: props.municipality_jp
-                });
+                };
                 
-                // クリックイベントを削除
-                map.off('click', clickHandler);
-                map.getCanvasContainer().style.cursor = '';
+                // 同じ市区町村を再クリックした場合は選択解除
+                if (selectedMunicipality && 
+                    selectedMunicipality.prefecture === newSelection.prefecture && 
+                    selectedMunicipality.municipality === newSelection.municipality) {
+                    setSelectedMunicipality(null);
+                    console.log('🚫 市区町村選択を解除しました');
+                } else {
+                    setSelectedMunicipality(newSelection);
+                    console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}を選択しました`);
+                }
             }
         };
         
-        alert('地図上の市区町村をクリックしてください');
-        map.getCanvasContainer().style.cursor = 'crosshair';
         map.on('click', clickHandler);
-    }, [map]);
+        
+        // クリーンアップ用の関数を返す
+        return () => {
+            map.off('click', clickHandler);
+        };
+    }, [map, selectedMunicipality]);
 
     const handleSearchClick = useCallback(async () => {
         if (!selectedCategory || !map) return;
@@ -88,6 +97,14 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
             onSearchComplete(searchState.results.length);
         }
     }, [selectedCategory, selectedCuisine, selectedMunicipality, map, currentZoom, executeSearch, executeAreaSearch, onSearchComplete, searchState.results.length]);
+
+    // 市区町村クリックハンドラーの自動設定
+    useEffect(() => {
+        if (!map) return;
+        
+        const cleanup = setupMunicipalityAutoSelection();
+        return cleanup;
+    }, [map, setupMunicipalityAutoSelection]);
 
     const showCuisineSelect = selectedCategory === 'restaurant' || selectedCategory === 'cafe';
 
@@ -130,25 +147,23 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
             <div className={styles.searchModeSection}>
                 <div className={styles.searchModeTitle}>📍 検索範囲</div>
                 
-                <button 
-                    onClick={handleMunicipalityClick}
-                    disabled={searchState.isLoading}
-                    className={`${styles.button} ${styles.selectButton}`}
-                    type="button"
-                >
-                    {selectedMunicipality 
-                        ? `${selectedMunicipality.prefecture} ${selectedMunicipality.municipality}` 
-                        : '市区町村を選択'}
-                </button>
-                
-                {selectedMunicipality && (
-                    <button 
-                        onClick={() => setSelectedMunicipality(null)}
-                        className={`${styles.button} ${styles.clearButton}`}
-                        type="button"
-                    >
-                        選択解除
-                    </button>
+                {selectedMunicipality ? (
+                    <div className={styles.selectedMunicipality}>
+                        <div className={styles.selectedText}>
+                            {selectedMunicipality.prefecture} {selectedMunicipality.municipality}
+                        </div>
+                        <button 
+                            onClick={() => setSelectedMunicipality(null)}
+                            className={`${styles.button} ${styles.clearButton}`}
+                            type="button"
+                        >
+                            ×
+                        </button>
+                    </div>
+                ) : (
+                    <div className={styles.noSelection}>
+                        地図上の市区町村をクリックして選択
+                    </div>
                 )}
                 
                 <div className={styles.searchModeInfo}>
