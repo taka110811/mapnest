@@ -34,6 +34,38 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
 
         // クリックイベントハンドラー
         const handleMapClick = (e) => {
+            console.log('🖱️ マップクリック座標:', e.point);
+            
+            // すべてのレイヤーから特徴を取得
+            const allFeatures = map.queryRenderedFeatures(e.point);
+            console.log('🎯 クリック位置の全フィーチャー:', allFeatures.map(f => ({
+                layer: f.layer.id,
+                properties: f.properties
+            })));
+            
+            // クラスターレイヤーを優先的にチェック
+            const clusterFeatures = map.queryRenderedFeatures(e.point, {
+                layers: ['search-clusters', 'search-cluster-count']
+            });
+            
+            if (clusterFeatures.length > 0) {
+                console.log('🔍 クラスター検出:', clusterFeatures[0].properties);
+                handleClusterClick(e);
+                return; // クラスターの場合は他の処理をスキップ
+            }
+            
+            // 検索ピンをチェック
+            const searchPinFeatures = map.queryRenderedFeatures(e.point, {
+                layers: ['search-pins']
+            });
+            
+            if (searchPinFeatures.length > 0) {
+                console.log('📍 検索ピン検出:', searchPinFeatures[0].properties);
+                handleSearchPinClick(e);
+                return;
+            }
+            
+            // 通常のフィーチャーをチェック
             const features = map.queryRenderedFeatures(e.point);
             if (features.length > 0) {
                 handleFeatureClick(map, e, features[0]);
@@ -42,7 +74,12 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
 
         // 検索結果ピンクリックハンドラー
         const handleSearchPinClick = (e) => {
-            const feature = e.features[0];
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: ['search-pins']
+            });
+            if (features.length === 0) return;
+            
+            const feature = features[0];
             const props = feature.properties;
             
             let content = `<div style="font-family: Arial, sans-serif;">`;
@@ -55,7 +92,7 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
             content += `</div>`;
             
             new maplibregl.Popup()
-                .setLngLat(e.lngLat)
+                .setLngLat(feature.geometry.coordinates)
                 .setHTML(content)
                 .addTo(map);
         };
@@ -80,42 +117,81 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
 
         // クラスタークリックハンドラー
         const handleClusterClick = (e) => {
+            // クラスター円と数値の両方のレイヤーから検索
             const features = map.queryRenderedFeatures(e.point, {
-                layers: ['search-clusters']
+                layers: ['search-clusters', 'search-cluster-count']
             });
-            const clusterId = features[0].properties.cluster_id;
             
-            // MapLibre GL JSのネイティブクラスタリングでズーム
-            map.getSource('search-pins').getClusterExpansionZoom(
-                clusterId,
-                (err, zoom) => {
-                    if (err) return;
-                    
-                    map.easeTo({
-                        center: features[0].geometry.coordinates,
-                        zoom: zoom,
-                        duration: 500
-                    });
+            if (features.length > 0) {
+                const clusterId = features[0].properties.cluster_id;
+                const pointCount = features[0].properties.point_count;
+                const coordinates = features[0].geometry.coordinates.slice();
+                
+                console.log(`🔍 クラスターをクリック: ${pointCount}件のピン (ID: ${clusterId})`);
+                
+                // ソースが存在することを確認
+                const source = map.getSource('search-pins');
+                if (!source) {
+                    console.error('❌ search-pinsソースが見つかりません');
+                    return;
                 }
-            );
+                
+                console.log('🎯 手動ズーム計算を実行');
+                
+                // ポイント数に基づくスマートズーム計算
+                const currentZoom = map.getZoom();
+                let targetZoom;
+                
+                if (pointCount >= 100) {
+                    targetZoom = currentZoom + 4; // 大クラスター: +4
+                } else if (pointCount >= 50) {
+                    targetZoom = currentZoom + 3; // 中クラスター: +3
+                } else if (pointCount >= 10) {
+                    targetZoom = currentZoom + 2; // 小クラスター: +2
+                } else {
+                    targetZoom = currentZoom + 1; // 極小クラスター: +1
+                }
+                
+                // 最大ズーム18まで制限
+                targetZoom = Math.min(targetZoom, 18);
+                
+                console.log(`📍 手動ズーム: ${currentZoom} → ${targetZoom} (${pointCount}件のピン)`);
+                
+                // coordinates配列が正しい形式か確認
+                while (Math.abs(coordinates[0]) > 180) {
+                    coordinates[0] += coordinates[0] > 180 ? -360 : 360;
+                }
+                
+                map.easeTo({
+                    center: coordinates,
+                    zoom: targetZoom,
+                    duration: 500
+                });
+                
+                console.log('✅ 手動ズーム実行完了');
+            }
         };
 
         // イベントリスナーを追加
         map.on('click', handleMapClick);
-        map.on('click', 'search-pins', handleSearchPinClick);
-        map.on('click', 'search-clusters', handleClusterClick);
         map.on('mouseenter', MapConfig.interactiveLayers, handleMouseEnter);
         map.on('mouseleave', MapConfig.interactiveLayers, handleMouseLeave);
+        map.on('mouseenter', 'search-clusters', handleMouseEnter);
+        map.on('mouseleave', 'search-clusters', handleMouseLeave);
+        map.on('mouseenter', 'search-cluster-count', handleMouseEnter);
+        map.on('mouseleave', 'search-cluster-count', handleMouseLeave);
         map.on('zoom', handleZoom);
         map.on('move', handleMove);
 
         // クリーンアップ
         return () => {
             map.off('click', handleMapClick);
-            map.off('click', 'search-pins', handleSearchPinClick);
-            map.off('click', 'search-clusters', handleClusterClick);
             map.off('mouseenter', MapConfig.interactiveLayers, handleMouseEnter);
             map.off('mouseleave', MapConfig.interactiveLayers, handleMouseLeave);
+            map.off('mouseenter', 'search-clusters', handleMouseEnter);
+            map.off('mouseleave', 'search-clusters', handleMouseLeave);
+            map.off('mouseenter', 'search-cluster-count', handleMouseEnter);
+            map.off('mouseleave', 'search-cluster-count', handleMouseLeave);
             map.off('zoom', handleZoom);
             map.off('move', handleMove);
         };
