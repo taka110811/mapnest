@@ -5,6 +5,27 @@ import useSearch from '../../hooks/useSearch';
 import { categoryConfig } from '../../services/overpassApi';
 import styles from './SearchPanel.module.css';
 
+// ポリゴンの重心を計算するヘルパー関数
+const calculatePolygonCenter = (coordinates) => {
+    if (!coordinates || coordinates.length === 0) return null;
+    
+    let totalLat = 0;
+    let totalLng = 0;
+    let pointCount = 0;
+    
+    coordinates.forEach(coord => {
+        if (Array.isArray(coord) && coord.length >= 2) {
+            totalLng += coord[0];
+            totalLat += coord[1];
+            pointCount++;
+        }
+    });
+    
+    if (pointCount === 0) return null;
+    
+    return [totalLng / pointCount, totalLat / pointCount];
+};
+
 export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedCuisine, setSelectedCuisine] = useState('');
@@ -35,47 +56,65 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
         }
     }, [map, clearSearchData]);
 
-    // 市区町村自動選択処理
-    const setupMunicipalityAutoSelection = useCallback(() => {
-        if (!map) return;
+    // 市区町村選択処理（MapContainer経由で呼び出される）
+    const handleMunicipalitySelection = useCallback((feature, props, map) => {
+        const newSelection = {
+            prefecture: props.prefecture_jp,
+            municipality: props.municipality_jp
+        };
         
-        const clickHandler = (e) => {
-            const features = map.queryRenderedFeatures(e.point, {
-                layers: ['municipalities-fill']
-            });
+        // 同じ市区町村を再クリックした場合は何もしない（選択維持）
+        if (selectedMunicipality && 
+            selectedMunicipality.prefecture === newSelection.prefecture && 
+            selectedMunicipality.municipality === newSelection.municipality) {
+            console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}は既に選択済み`);
+            return false; // 処理をスキップ
+        }
+        
+        // 市区町村の中心座標を計算してカメラを移動
+        const geometry = feature.geometry;
+        
+        if (geometry && geometry.coordinates) {
+            let center;
             
-            if (features.length > 0) {
-                const props = features[0].properties;
-                const newSelection = {
-                    prefecture: props.prefecture_jp,
-                    municipality: props.municipality_jp
-                };
-                
-                // 同じ市区町村を再クリックした場合は何もしない（選択維持）
-                if (selectedMunicipality && 
-                    selectedMunicipality.prefecture === newSelection.prefecture && 
-                    selectedMunicipality.municipality === newSelection.municipality) {
-                    console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}は既に選択済み`);
-                    return; // 何もしない
-                }
-                
-                // 新しい市区町村を選択または切り替え
-                setSelectedMunicipality(newSelection);
-                if (selectedMunicipality) {
-                    console.log(`🔄 ${selectedMunicipality.prefecture}${selectedMunicipality.municipality} → ${newSelection.prefecture}${newSelection.municipality}に切り替えました`);
-                } else {
-                    console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}を選択しました`);
-                }
+            // ジオメトリタイプに応じて中心点を計算
+            if (geometry.type === 'Point') {
+                center = geometry.coordinates;
+            } else if (geometry.type === 'Polygon') {
+                // ポリゴンの重心を計算
+                center = calculatePolygonCenter(geometry.coordinates[0]);
+            } else if (geometry.type === 'MultiPolygon') {
+                // 最大のポリゴンの重心を計算
+                const largestPolygon = geometry.coordinates.reduce((largest, current) => 
+                    current[0].length > largest[0].length ? current : largest
+                );
+                center = calculatePolygonCenter(largestPolygon[0]);
             }
-        };
+            
+            if (center) {
+                console.log(`🎯 ${newSelection.prefecture}${newSelection.municipality}の中心に移動:`, center);
+                
+                // 市区町村が適切に表示されるズームレベル（12程度）
+                const targetZoom = Math.max(map.getZoom(), 12);
+                
+                map.easeTo({
+                    center: [center[0], center[1]],
+                    zoom: targetZoom,
+                    duration: 1000 // 1秒かけてスムーズに移動
+                });
+            }
+        }
         
-        map.on('click', clickHandler);
+        // 新しい市区町村を選択または切り替え
+        setSelectedMunicipality(newSelection);
+        if (selectedMunicipality) {
+            console.log(`🔄 ${selectedMunicipality.prefecture}${selectedMunicipality.municipality} → ${newSelection.prefecture}${newSelection.municipality}に切り替えました`);
+        } else {
+            console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}を選択しました`);
+        }
         
-        // クリーンアップ用の関数を返す
-        return () => {
-            map.off('click', clickHandler);
-        };
-    }, [map, selectedMunicipality]);
+        return true; // 処理成功
+    }, [selectedMunicipality]);
 
     const handleSearchClick = useCallback(async () => {
         if (!selectedCategory || !map) return;
@@ -103,13 +142,18 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
         }
     }, [selectedCategory, selectedCuisine, selectedMunicipality, map, currentZoom, executeSearch, executeAreaSearch, onSearchComplete, searchState.results.length]);
 
-    // 市区町村クリックハンドラーの自動設定
+    // 市区町村選択関数をMapContainerで利用できるよう登録
     useEffect(() => {
-        if (!map) return;
-        
-        const cleanup = setupMunicipalityAutoSelection();
-        return cleanup;
-    }, [map, setupMunicipalityAutoSelection]);
+        if (map && handleMunicipalitySelection) {
+            map._municipalitySelectionHandler = handleMunicipalitySelection;
+        }
+        return () => {
+            if (map && map._municipalitySelectionHandler) {
+                delete map._municipalitySelectionHandler;
+            }
+        };
+    }, [map, handleMunicipalitySelection]);
+
 
     const showCuisineSelect = selectedCategory === 'restaurant' || selectedCategory === 'cafe';
 

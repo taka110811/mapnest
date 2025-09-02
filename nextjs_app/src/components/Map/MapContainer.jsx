@@ -200,16 +200,38 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
     const handleFeatureClick = (map, e, feature) => {
         const props = feature.properties;
         const currentZoom = map.getZoom();
+        
+        console.log(`🎯 フィーチャークリック: ${props.level}, 現在ズーム: ${currentZoom}`);
+        
+        // ズームレベル11以上かつ市区町村の場合: SearchPanelの市区町村選択機能が責任を持つ
+        if (currentZoom >= 11 && props.level === 'municipality') {
+            console.log('📍 ズーム11以上: 市区町村選択機能が担当');
+            
+            if (map._municipalitySelectionHandler) {
+                const handled = map._municipalitySelectionHandler(feature, props, map);
+                if (handled) {
+                    return; // 処理完了
+                }
+            }
+        }
+        
+        // ズームレベル11未満または他の行政レベル: 階層的ズーム機能が責任を持つ
+        console.log('🔍 階層的ズーム機能が担当');
+        
         const zoomBehavior = getZoomBehavior(props, currentZoom);
         
         if (zoomBehavior.shouldZoom) {
+            console.log(`⬆️ 階層ズーム実行: ${props.level} → ズーム${zoomBehavior.targetZoom}`);
+            
             // クリック位置を中心にズームイン
             map.easeTo({
                 center: e.lngLat,
                 zoom: zoomBehavior.targetZoom,
-                duration: 300
+                duration: 500
             });
         } else {
+            console.log('ℹ️ 詳細情報ポップアップ表示');
+            
             // 詳細情報ポップアップ表示
             const content = createAdministrativePopup(props);
             new maplibregl.Popup()
