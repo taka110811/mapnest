@@ -280,7 +280,4 @@ function updatePinStyle(map, category) {
     if (map.getLayer('search-pins')) {
         map.setPaintProperty('search-pins', 'circle-color', config.color);
     }
-    if (map.getLayer('search-labels')) {
-        map.setLayoutProperty('search-labels', 'text-field', config.icon);
-    }
 }

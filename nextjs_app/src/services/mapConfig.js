@@ -42,7 +42,10 @@ const MapConfig = {
                     data: {
                         type: 'FeatureCollection',
                         features: []
-                    }
+                    },
+                    cluster: true,
+                    clusterMaxZoom: 14,
+                    clusterRadius: 50
                 },
                 'search-area': {
                     type: 'geojson',
@@ -164,25 +167,60 @@ const MapConfig = {
      */
     getSearchPinLayers() {
         return [
+            // クラスター円
+            {
+                'id': 'search-clusters',
+                'type': 'circle',
+                'source': 'search-pins',
+                'filter': ['has', 'point_count'],
+                'paint': {
+                    'circle-color': [
+                        'step',
+                        ['get', 'point_count'],
+                        '#51bbd6',  // 2-9 points
+                        10, '#f1c40f',  // 10-49 points
+                        50, '#e67e22',  // 50-99 points
+                        100, '#e74c3c'  // 100+ points
+                    ],
+                    'circle-radius': [
+                        'step',
+                        ['get', 'point_count'],
+                        15,  // 2-9 points
+                        10, 20,  // 10-49 points
+                        50, 25,  // 50-99 points
+                        100, 30  // 100+ points
+                    ],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#FFFFFF'
+                }
+            },
+            // クラスター数値
+            {
+                'id': 'search-cluster-count',
+                'type': 'symbol',
+                'source': 'search-pins',
+                'filter': ['has', 'point_count'],
+                'layout': {
+                    'text-field': '{point_count_abbreviated}',
+                    'text-font': ['Noto Sans Regular'],
+                    'text-size': 12,
+                    'text-allow-overlap': true
+                },
+                'paint': {
+                    'text-color': '#FFFFFF'
+                }
+            },
+            // 個別ピン
             {
                 'id': 'search-pins',
                 'type': 'circle',
                 'source': 'search-pins',
+                'filter': ['!', ['has', 'point_count']],
                 'paint': {
-                    'circle-radius': 6,
                     'circle-color': '#FF4500',
+                    'circle-radius': 6,
                     'circle-stroke-color': '#FFFFFF',
                     'circle-stroke-width': 2
-                }
-            },
-            {
-                'id': 'search-labels',
-                'type': 'symbol',
-                'source': 'search-pins',
-                'layout': {
-                    'text-field': '📍',
-                    'text-size': 16,
-                    'text-offset': [0, 0]
                 }
             }
         ];
@@ -217,7 +255,7 @@ const MapConfig = {
     },
     
     /** @type {Array<string>} インタラクティブなレイヤーのID一覧 */
-    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins']
+    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins', 'search-clusters']
 };
 
 export default MapConfig;

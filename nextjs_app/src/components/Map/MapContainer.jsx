@@ -78,9 +78,32 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
             updateSearchArea(map);
         };
 
+        // クラスタークリックハンドラー
+        const handleClusterClick = (e) => {
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: ['search-clusters']
+            });
+            const clusterId = features[0].properties.cluster_id;
+            
+            // MapLibre GL JSのネイティブクラスタリングでズーム
+            map.getSource('search-pins').getClusterExpansionZoom(
+                clusterId,
+                (err, zoom) => {
+                    if (err) return;
+                    
+                    map.easeTo({
+                        center: features[0].geometry.coordinates,
+                        zoom: zoom,
+                        duration: 500
+                    });
+                }
+            );
+        };
+
         // イベントリスナーを追加
         map.on('click', handleMapClick);
         map.on('click', 'search-pins', handleSearchPinClick);
+        map.on('click', 'search-clusters', handleClusterClick);
         map.on('mouseenter', MapConfig.interactiveLayers, handleMouseEnter);
         map.on('mouseleave', MapConfig.interactiveLayers, handleMouseLeave);
         map.on('zoom', handleZoom);
@@ -90,6 +113,7 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
         return () => {
             map.off('click', handleMapClick);
             map.off('click', 'search-pins', handleSearchPinClick);
+            map.off('click', 'search-clusters', handleClusterClick);
             map.off('mouseenter', MapConfig.interactiveLayers, handleMouseEnter);
             map.off('mouseleave', MapConfig.interactiveLayers, handleMouseLeave);
             map.off('zoom', handleZoom);
