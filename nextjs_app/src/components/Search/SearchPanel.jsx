@@ -27,9 +27,10 @@ const calculatePolygonCenter = (coordinates) => {
 };
 
 export default function SearchPanel({ map, onSearchComplete }) {
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('restaurant'); // デフォルトでレストランを選択
     const [selectedCuisine, setSelectedCuisine] = useState('');
     const [selectedMunicipality, setSelectedMunicipality] = useState(null); // { prefecture: "東京都", municipality: "渋谷区" }
+    const [isVisible, setIsVisible] = useState(false); // デフォルトで非表示状態
     const { searchState, executeAreaSearch, clearSearchData } = useSearch();
 
     const handleCategoryChange = useCallback((e) => {
@@ -171,20 +172,41 @@ export default function SearchPanel({ map, onSearchComplete }) {
 
     return (
         <div className={styles.searchPanel}>
-            <h3 className={styles.title}>🔍 検索</h3>
+            <div className={styles.header}>
+                <h3 className={styles.title}>🔍 検索</h3>
+                <button 
+                    className={styles.toggleButton}
+                    onClick={() => setIsVisible(!isVisible)}
+                    type="button"
+                >
+                    {isVisible ? '−' : '+'}
+                </button>
+            </div>
             
-            <select 
-                value={selectedCategory} 
-                onChange={handleCategoryChange}
-                className={styles.select}
-            >
-                <option value="">カテゴリーを選択</option>
-                {Object.entries(categoryConfig).map(([key, config]) => (
-                    <option key={key} value={key}>
-                        {config.icon} {config.name}
-                    </option>
-                ))}
-            </select>
+            {/* 表示時はカテゴリー選択、非表示時はテキスト表示 */}
+            {isVisible ? (
+                <select 
+                    value={selectedCategory} 
+                    onChange={handleCategoryChange}
+                    className={styles.select}
+                >
+                    <option value="">カテゴリーを選択</option>
+                    {Object.entries(categoryConfig).map(([key, config]) => (
+                        <option key={key} value={key}>
+                            {config.icon} {config.name}
+                        </option>
+                    ))}
+                </select>
+            ) : (
+                <div className={styles.categoryText}>
+                    {selectedCategory 
+                        ? `${categoryConfig[selectedCategory]?.icon} ${categoryConfig[selectedCategory]?.name}` 
+                        : 'カテゴリー未選択'}
+                </div>
+            )}
+            
+            {isVisible && (
+            <div className={styles.content}>
 
             {showCuisineSelect && (
                 <select 
@@ -246,6 +268,9 @@ export default function SearchPanel({ map, onSearchComplete }) {
                     </div>
                 )}
             </div>
+            
+            </div>
+            )}
         </div>
     );
 }
