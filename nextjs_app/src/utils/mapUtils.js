@@ -28,38 +28,6 @@ export function getZoomBehavior(props, currentZoom) {
     return { shouldZoom, targetZoom };
 }
 
-/**
- * 行政区域用のポップアップコンテンツを作成
- * @param {Object} props - フィーチャーのプロパティ
- * @returns {string} HTML文字列のポップアップコンテンツ
- */
-export function createAdministrativePopup(props) {
-    let content = '<h3>地域情報</h3>';
-    
-    if (props.level === 'region') {
-        content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
-        content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
-        content += `<p><strong>世帯数:</strong> ${props.households?.toLocaleString() || 'N/A'}</p>`;
-    } else if (props.level === 'prefecture') {
-        content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
-        content += `<p><strong>地方:</strong> ${props.region_jp}</p>`;
-        content += `<p><strong>JISコード:</strong> ${props.jis_code}</p>`;
-        content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
-    } else if (props.level === 'municipality') {
-        content += `<p><strong>市区町村:</strong> ${props.municipality_jp}</p>`;
-        content += `<p><strong>都道府県:</strong> ${props.prefecture_jp}</p>`;
-        content += `<p><strong>コード:</strong> ${props.jcode}</p>`;
-        content += `<p><strong>人口:</strong> ${props.population?.toLocaleString() || 'N/A'}</p>`;
-    } else if (props.level === 'detailed') {
-        content += `<p><strong>地域:</strong> ${props.SIKUCHOSON || 'N/A'}</p>`;
-        content += `<p><strong>都道府県:</strong> ${props.KEN || 'N/A'}</p>`;
-        content += `<p><strong>人口:</strong> ${props.P_NUM?.toLocaleString() || 'N/A'}</p>`;
-        content += `<p><strong>世帯数:</strong> ${props.H_NUM?.toLocaleString() || 'N/A'}</p>`;
-        content += `<p class="zoom-note" style="color: #666; font-size: 11px; margin-top: 8px;">💡 これ以上詳細なレベルはありません</p>`;
-    }
-    
-    return content;
-}
 
 /**
  * 検索結果用のポップアップコンテンツを作成

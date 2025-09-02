@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import useMap from '../../hooks/useMap';
 import useSearch from '../../hooks/useSearch';
-import { getZoomBehavior, createAdministrativePopup } from '../../utils/mapUtils';
+import { getZoomBehavior } from '../../utils/mapUtils';
 import MapConfig from '../../services/mapConfig';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -230,14 +230,8 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
                 duration: 500
             });
         } else {
-            console.log('ℹ️ 詳細情報ポップアップ表示');
-            
-            // 詳細情報ポップアップ表示
-            const content = createAdministrativePopup(props);
-            new maplibregl.Popup()
-                .setLngLat(e.lngLat)
-                .setHTML(content)
-                .addTo(map);
+            console.log('ℹ️ 最大ズームレベル到達 - ポップアップは表示しない');
+            // ポップアップは表示しない
         }
     };
 
