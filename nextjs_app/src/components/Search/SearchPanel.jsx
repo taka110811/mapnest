@@ -51,14 +51,19 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
                     municipality: props.municipality_jp
                 };
                 
-                // 同じ市区町村を再クリックした場合は選択解除
+                // 同じ市区町村を再クリックした場合は何もしない（選択維持）
                 if (selectedMunicipality && 
                     selectedMunicipality.prefecture === newSelection.prefecture && 
                     selectedMunicipality.municipality === newSelection.municipality) {
-                    setSelectedMunicipality(null);
-                    console.log('🚫 市区町村選択を解除しました');
+                    console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}は既に選択済み`);
+                    return; // 何もしない
+                }
+                
+                // 新しい市区町村を選択または切り替え
+                setSelectedMunicipality(newSelection);
+                if (selectedMunicipality) {
+                    console.log(`🔄 ${selectedMunicipality.prefecture}${selectedMunicipality.municipality} → ${newSelection.prefecture}${newSelection.municipality}に切り替えました`);
                 } else {
-                    setSelectedMunicipality(newSelection);
                     console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}を選択しました`);
                 }
             }
