@@ -26,11 +26,11 @@ const calculatePolygonCenter = (coordinates) => {
     return [totalLng / pointCount, totalLat / pointCount];
 };
 
-export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
+export default function SearchPanel({ map, onSearchComplete }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedCuisine, setSelectedCuisine] = useState('');
     const [selectedMunicipality, setSelectedMunicipality] = useState(null); // { prefecture: "東京都", municipality: "渋谷区" }
-    const { searchState, executeSearch, executeAreaSearch, clearSearchData } = useSearch();
+    const { searchState, executeAreaSearch, clearSearchData } = useSearch();
 
     const handleCategoryChange = useCallback((e) => {
         const category = e.target.value;
@@ -55,6 +55,40 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
             clearSearchData(map);
         }
     }, [map, clearSearchData]);
+
+    // 自動検索をトリガーする関数
+    const triggerAutoSearch = useCallback((municipalitySelection) => {
+        // カテゴリーが選択されていない場合は検索しない
+        if (!selectedCategory) {
+            console.log('⚠️ カテゴリーが未選択のため検索をスキップ');
+            return;
+        }
+        
+        if (!map) {
+            console.log('⚠️ マップが未初期化のため検索をスキップ');
+            return;
+        }
+        
+        console.log(`🔍 自動検索実行: ${municipalitySelection.prefecture}${municipalitySelection.municipality} - ${categoryConfig[selectedCategory]?.name}`);
+        
+        // 市区町村ベース検索を実行
+        executeAreaSearch(
+            map,
+            selectedCategory,
+            municipalitySelection.prefecture,
+            municipalitySelection.municipality,
+            selectedCuisine
+        );
+        
+        if (onSearchComplete) {
+            // 検索完了コールバック（結果数は後で更新される）
+            setTimeout(() => {
+                if (onSearchComplete && searchState.results) {
+                    onSearchComplete(searchState.results.length);
+                }
+            }, 1000);
+        }
+    }, [selectedCategory, selectedCuisine, map, executeAreaSearch, onSearchComplete, searchState.results]);
 
     // 市区町村選択処理（MapContainer経由で呼び出される）
     const handleMunicipalitySelection = useCallback((feature, props, map) => {
@@ -113,34 +147,12 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
             console.log(`📍 ${newSelection.prefecture}${newSelection.municipality}を選択しました`);
         }
         
+        // 自動検索実行
+        triggerAutoSearch(newSelection);
+        
         return true; // 処理成功
-    }, [selectedMunicipality]);
+    }, [selectedMunicipality, triggerAutoSearch]);
 
-    const handleSearchClick = useCallback(async () => {
-        if (!selectedCategory || !map) return;
-        
-        // 市区町村が選択されている場合は市区町村ベース検索
-        if (selectedMunicipality) {
-            await executeAreaSearch(
-                map, 
-                selectedCategory, 
-                selectedMunicipality.prefecture, 
-                selectedMunicipality.municipality, 
-                selectedCuisine
-            );
-        } else {
-            // 従来の座標ベース検索
-            if (currentZoom <= 10) {
-                alert('検索を実行するには、ズームレベル11以上まで拡大するか、市区町村を選択してください。');
-                return;
-            }
-            await executeSearch(map, selectedCategory, selectedCuisine);
-        }
-        
-        if (onSearchComplete) {
-            onSearchComplete(searchState.results.length);
-        }
-    }, [selectedCategory, selectedCuisine, selectedMunicipality, map, currentZoom, executeSearch, executeAreaSearch, onSearchComplete, searchState.results.length]);
 
     // 市区町村選択関数をMapContainerで利用できるよう登録
     useEffect(() => {
@@ -222,13 +234,7 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
                 </div>
             </div>
 
-            <button 
-                onClick={handleSearchClick}
-                disabled={!selectedCategory || searchState.isLoading}
-                className={styles.button}
-            >
-                {searchState.isLoading ? '検索中...' : '検索実行'}
-            </button>
+            {/* 自動検索のため、検索実行ボタンは削除 */}
 
             <div className={styles.results}>
                 {searchState.error && (

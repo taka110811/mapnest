@@ -48,7 +48,6 @@ export default function Home() {
       {map && (
         <SearchPanel 
           map={map}
-          currentZoom={zoom}
           onSearchComplete={setSearchCount}
         />
       )}
