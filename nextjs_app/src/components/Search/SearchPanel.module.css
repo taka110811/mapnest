@@ -59,3 +59,47 @@
 .error {
     color: #dc3545;
 }
+
+.searchModeSection {
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.searchModeTitle {
+    font-weight: bold;
+    color: #495057;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.selectButton {
+    background: #007bff !important;
+    color: white !important;
+    margin-bottom: 5px;
+}
+
+.selectButton:hover {
+    background: #0056b3 !important;
+}
+
+.clearButton {
+    background: #6c757d !important;
+    color: white !important;
+    font-size: 0.8em;
+    padding: 4px 8px !important;
+    margin-left: 8px;
+}
+
+.clearButton:hover {
+    background: #545b62 !important;
+}
+
+.searchModeInfo {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 8px;
+    line-height: 1.3;
+}

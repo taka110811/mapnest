@@ -82,7 +82,7 @@ export function getSearchRange(zoom) {
 }
 
 /**
- * Overpass APIクエリを構築
+ * Overpass APIクエリを構築（座標ベース）
  * @param {string} category - 検索カテゴリー
  * @param {string} cuisine - 料理ジャンル
  * @param {number} south - 南端座標
@@ -119,6 +119,51 @@ export function buildOverpassQuery(category, cuisine, south, west, north, east) 
         );
         out center;
     `;
+}
+
+/**
+ * 市区町村エリアベースのOverpass APIクエリを構築
+ * @param {string} category - 検索カテゴリー
+ * @param {string} prefectureName - 都道府県名
+ * @param {string} municipalityName - 市区町村名
+ * @param {string} cuisine - 料理ジャンル（オプション）
+ * @returns {string} Overpass APIクエリ文字列
+ */
+export function buildAreaBasedQuery(category, prefectureName, municipalityName, cuisine = '') {
+    const config = categoryConfig[category];
+    
+    let filters = [];
+    
+    // メインフィルター
+    if (config.amenity) {
+        filters.push(`["amenity"="${config.amenity}"]`);
+    } else if (config.shop) {
+        filters.push(`["shop"="${config.shop}"]`);
+    }
+    
+    // 料理ジャンルフィルター（レストラン・カフェの場合）
+    if (cuisine && (category === 'restaurant' || category === 'cafe')) {
+        filters.push(`["cuisine"~"${cuisine}"]`);
+    }
+    
+    const filterString = filters.join('');
+    
+    return `
+        [out:json][timeout:30];
+        // 都道府県エリアを取得
+        area["ISO3166-1"="JP"][admin_level=4][name="${prefectureName}"]->.prefecture;
+        // 市区町村エリアを取得
+        (
+          area[admin_level=7][name="${municipalityName}"](area.prefecture);
+          area[admin_level=8][name="${municipalityName}"](area.prefecture);
+        )->.city;
+        (
+          node${filterString}(area.city);
+          way${filterString}(area.city);
+          relation${filterString}(area.city);
+        );
+        out center;
+    `.trim();
 }
 
 /**

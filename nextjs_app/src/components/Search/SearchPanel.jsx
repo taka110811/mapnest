@@ -8,7 +8,8 @@ import styles from './SearchPanel.module.css';
 export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedCuisine, setSelectedCuisine] = useState('');
-    const { searchState, executeSearch, clearSearchData } = useSearch();
+    const [selectedMunicipality, setSelectedMunicipality] = useState(null); // { prefecture: "東京都", municipality: "渋谷区" }
+    const { searchState, executeSearch, executeAreaSearch, clearSearchData } = useSearch();
 
     const handleCategoryChange = useCallback((e) => {
         const category = e.target.value;
@@ -34,20 +35,59 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
         }
     }, [map, clearSearchData]);
 
+    // 市区町村クリック処理を追加
+    const handleMunicipalityClick = useCallback(() => {
+        if (!map) return;
+        
+        // 一度だけクリックイベントを登録
+        const clickHandler = (e) => {
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: ['municipalities-fill']
+            });
+            
+            if (features.length > 0) {
+                const props = features[0].properties;
+                setSelectedMunicipality({
+                    prefecture: props.prefecture_jp,
+                    municipality: props.municipality_jp
+                });
+                
+                // クリックイベントを削除
+                map.off('click', clickHandler);
+                map.getCanvasContainer().style.cursor = '';
+            }
+        };
+        
+        alert('地図上の市区町村をクリックしてください');
+        map.getCanvasContainer().style.cursor = 'crosshair';
+        map.on('click', clickHandler);
+    }, [map]);
+
     const handleSearchClick = useCallback(async () => {
         if (!selectedCategory || !map) return;
         
-        if (currentZoom <= 10) {
-            alert('検索を実行するには、ズームレベル11以上まで拡大してください。');
-            return;
+        // 市区町村が選択されている場合は市区町村ベース検索
+        if (selectedMunicipality) {
+            await executeAreaSearch(
+                map, 
+                selectedCategory, 
+                selectedMunicipality.prefecture, 
+                selectedMunicipality.municipality, 
+                selectedCuisine
+            );
+        } else {
+            // 従来の座標ベース検索
+            if (currentZoom <= 10) {
+                alert('検索を実行するには、ズームレベル11以上まで拡大するか、市区町村を選択してください。');
+                return;
+            }
+            await executeSearch(map, selectedCategory, selectedCuisine);
         }
-        
-        await executeSearch(map, selectedCategory, selectedCuisine);
         
         if (onSearchComplete) {
             onSearchComplete(searchState.results.length);
         }
-    }, [selectedCategory, selectedCuisine, map, currentZoom, executeSearch, onSearchComplete, searchState.results.length]);
+    }, [selectedCategory, selectedCuisine, selectedMunicipality, map, currentZoom, executeSearch, executeAreaSearch, onSearchComplete, searchState.results.length]);
 
     const showCuisineSelect = selectedCategory === 'restaurant' || selectedCategory === 'cafe';
 
@@ -86,6 +126,37 @@ export default function SearchPanel({ map, currentZoom, onSearchComplete }) {
                     <option value="korean">韓国料理</option>
                 </select>
             )}
+
+            <div className={styles.searchModeSection}>
+                <div className={styles.searchModeTitle}>📍 検索範囲</div>
+                
+                <button 
+                    onClick={handleMunicipalityClick}
+                    disabled={searchState.isLoading}
+                    className={`${styles.button} ${styles.selectButton}`}
+                    type="button"
+                >
+                    {selectedMunicipality 
+                        ? `${selectedMunicipality.prefecture} ${selectedMunicipality.municipality}` 
+                        : '市区町村を選択'}
+                </button>
+                
+                {selectedMunicipality && (
+                    <button 
+                        onClick={() => setSelectedMunicipality(null)}
+                        className={`${styles.button} ${styles.clearButton}`}
+                        type="button"
+                    >
+                        選択解除
+                    </button>
+                )}
+                
+                <div className={styles.searchModeInfo}>
+                    {selectedMunicipality 
+                        ? `${selectedMunicipality.municipality}全体で検索します` 
+                        : '現在の表示範囲で検索します（ズーム11以上必要）'}
+                </div>
+            </div>
 
             <button 
                 onClick={handleSearchClick}
