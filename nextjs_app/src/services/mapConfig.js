@@ -6,8 +6,8 @@
 const MapConfig = {
     /** @type {string} PMTilesファイルのURL */
     PMTILES_URL: process.env.NODE_ENV === 'production' 
-        ? '/api/tiles/japan_all_levels_unified.pmtiles'
-        : 'http://localhost:8080/tiles/japan_all_levels_unified.pmtiles',
+        ? '/api/tiles/japan_3layers_light.pmtiles'
+        : 'http://localhost:8080/tiles/japan_3layers_light.pmtiles',
     
     /** @type {Object} マップ初期化オプション */
     mapOptions: {
@@ -129,14 +129,13 @@ const MapConfig = {
                     'line-opacity': 0.8
                 }
             },
-            // 市区町村レベル (Z8-11)
+            // 市区町村レベル (Z8+)
             {
                 'id': 'municipalities-fill',
                 'type': 'fill',
                 'source': 'pmtiles_source',
                 'source-layer': 'japan_unified',
                 'minzoom': 8,
-                'maxzoom': 11,
                 'filter': ['==', ['get', 'level'], 'municipality'],
                 'paint': {
                     'fill-color': ['get', 'color'],
@@ -149,37 +148,10 @@ const MapConfig = {
                 'source': 'pmtiles_source',
                 'source-layer': 'japan_unified',
                 'minzoom': 8,
-                'maxzoom': 11,
                 'filter': ['==', ['get', 'level'], 'municipality'],
                 'paint': {
                     'line-color': '#333333',
                     'line-width': 1,
-                    'line-opacity': 0.8
-                }
-            },
-            // 詳細レベル (Z11+)
-            {
-                'id': 'detailed-fill',
-                'type': 'fill',
-                'source': 'pmtiles_source',
-                'source-layer': 'japan_unified',
-                'minzoom': 11,
-                'filter': ['==', ['get', 'level'], 'detailed'],
-                'paint': {
-                    'fill-color': ['get', 'color'],
-                    'fill-opacity': 0.7
-                }
-            },
-            {
-                'id': 'detailed-stroke',
-                'type': 'line',
-                'source': 'pmtiles_source',
-                'source-layer': 'japan_unified',
-                'minzoom': 11,
-                'filter': ['==', ['get', 'level'], 'detailed'],
-                'paint': {
-                    'line-color': '#333333',
-                    'line-width': 0.5,
                     'line-opacity': 0.8
                 }
             }
@@ -245,7 +217,7 @@ const MapConfig = {
     },
     
     /** @type {Array<string>} インタラクティブなレイヤーのID一覧 */
-    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'detailed-fill', 'search-pins']
+    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins']
 };
 
 export default MapConfig;

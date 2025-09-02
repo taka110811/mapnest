@@ -26,6 +26,7 @@ export default function useMap(containerId) {
 
                 // PMTiles データソースを初期化
                 const { PMTiles } = await import('pmtiles');
+                console.log('🔄 Loading PMTiles from:', MapConfig.PMTILES_URL);
                 const pmtiles = new PMTiles(MapConfig.PMTILES_URL);
                 protocol.add(pmtiles);
                 pmtilesRef.current = pmtiles;
@@ -66,19 +67,22 @@ export default function useMap(containerId) {
                 // PMTiles メタデータを読み込み
                 try {
                     const header = await pmtiles.getHeader();
-                    console.log('PMTiles header:', header);
+                    console.log('✅ PMTiles loaded successfully!');
+                    console.log('📁 File URL:', MapConfig.PMTILES_URL);
+                    console.log('📊 PMTiles header:', header);
                     
                     const metadata = await pmtiles.getMetadata();
-                    console.log('PMTiles metadata:', metadata);
+                    console.log('📋 PMTiles metadata:', metadata);
                     
                     if (metadata && metadata.vector_layers) {
-                        console.log('Available vector layers:', metadata.vector_layers);
+                        console.log('🗂️ Available vector layers:', metadata.vector_layers.length);
                         metadata.vector_layers.forEach(layer => {
-                            console.log(`Layer: ${layer.id}, Fields:`, layer.fields);
+                            console.log(`📍 Layer: ${layer.id}`);
+                            console.log(`  🏷️ Fields (${Object.keys(layer.fields).length}):`, Object.keys(layer.fields).join(', '));
                         });
                     }
                 } catch (err) {
-                    console.error('Metadata error:', err);
+                    console.error('❌ Metadata error:', err);
                 }
 
             } catch (error) {
