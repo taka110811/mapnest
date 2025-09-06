@@ -33,6 +33,12 @@ export default function Home() {
   const [zoom, setZoom] = useState(5);
   const [map, setMap] = useState(null);
   const [searchCount, setSearchCount] = useState(0);
+  const [searchHook, setSearchHook] = useState(null);
+  const [municipalitySelectionHandler, setMunicipalitySelectionHandler] = useState(null);
+
+  const handleMunicipalitySelectionHandlerReady = (handler) => {
+    setMunicipalitySelectionHandler(() => handler);
+  };
 
   return (
     <main style={{ position: 'relative', width: '100%', height: '100vh' }}>
@@ -40,6 +46,8 @@ export default function Home() {
       <MapContainer 
         onZoomChange={setZoom}
         onMapLoad={setMap}
+        onSearchHookReady={setSearchHook}
+        municipalitySelectionHandler={municipalitySelectionHandler}
       />
       <InfoPanel 
         zoom={zoom} 
@@ -49,6 +57,8 @@ export default function Home() {
         <SearchPanel 
           map={map}
           onSearchComplete={setSearchCount}
+          searchHook={searchHook}
+          onMunicipalitySelectionHandlerReady={handleMunicipalitySelectionHandlerReady}
         />
       )}
     </main>

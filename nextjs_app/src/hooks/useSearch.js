@@ -1,18 +1,12 @@
 /**
  * 検索機能カスタムフック
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { 
-    categoryConfig, 
-    getSearchRange, 
-    buildOverpassQuery, 
-    queryOverpassAPI, 
-    isValidElement, 
-    elementToFeature 
+    categoryConfig
 } from '../services/overpassApi';
-import { createSearchAreaFeature } from '../utils/mapUtils';
 
-export default function useSearch() {
+export default function useSearch(updateSearchPins) {
     const [searchState, setSearchState] = useState({
         isLoading: false,
         results: [],
@@ -25,78 +19,6 @@ export default function useSearch() {
     const lastSearchCenter = useRef(null);
     const searchTimeout = useRef(null);
 
-    /**
-     * 検索を実行
-     */
-    const executeSearch = useCallback(async (map, category, cuisine = '') => {
-        if (!map || !categoryConfig[category]) {
-            console.error(`未対応のカテゴリー: ${category}`);
-            return;
-        }
-
-        setSearchState(prev => ({ 
-            ...prev, 
-            isLoading: true, 
-            error: null,
-            currentCategory: category,
-            currentCuisine: cuisine
-        }));
-
-        const center = map.getCenter();
-        const zoom = map.getZoom();
-        const range = getSearchRange(zoom);
-        
-        const south = center.lat - range;
-        const west = center.lng - range;
-        const north = center.lat + range;
-        const east = center.lng + range;
-        
-        console.log(`検索範囲: ${south.toFixed(4)}, ${west.toFixed(4)}, ${north.toFixed(4)}, ${east.toFixed(4)}`);
-        
-        try {
-            const overpassQuery = buildOverpassQuery(category, cuisine, south, west, north, east);
-            const response = await queryOverpassAPI(overpassQuery);
-            const features = processOverpassResponse(response, category);
-            
-            // データをマップに追加
-            if (map.getSource('search-pins')) {
-                map.getSource('search-pins').setData({
-                    type: 'FeatureCollection',
-                    features: features
-                });
-            }
-            
-            // ピンの色を更新
-            updatePinStyle(map, category);
-            
-            console.log(`${categoryConfig[category].name}を ${features.length}件発見しました`);
-            
-            setSearchState(prev => ({
-                ...prev,
-                isLoading: false,
-                results: features,
-                searchDataLoaded: true
-            }));
-            
-        } catch (error) {
-            console.error('検索エラー:', error);
-            
-            // エラー時は空のデータを表示
-            if (map.getSource('search-pins')) {
-                map.getSource('search-pins').setData({
-                    type: 'FeatureCollection',
-                    features: []
-                });
-            }
-            
-            setSearchState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: error.message,
-                results: []
-            }));
-        }
-    }, []);
 
     /**
      * 検索データをクリア
@@ -145,12 +67,9 @@ export default function useSearch() {
                 searchDataLoaded: true
             }));
 
-            // マップに結果を表示
-            if (map.getSource('search-pins')) {
-                map.getSource('search-pins').setData({
-                    type: 'FeatureCollection',
-                    features
-                });
+            // マップに結果を表示（宣言的、カテゴリー情報も含む）
+            if (updateSearchPins) {
+                updateSearchPins(features, category);
             }
 
         } catch (error) {
@@ -161,16 +80,14 @@ export default function useSearch() {
                 error: error.message || 'Search failed'
             }));
         }
-    }, []);
+    }, [updateSearchPins]);
 
     const clearSearchData = useCallback((map) => {
         console.log('検索データをクリアします');
         
-        if (map && map.getSource('search-pins')) {
-            map.getSource('search-pins').setData({
-                type: 'FeatureCollection',
-                features: []
-            });
+        // 宣言的にデータをクリア
+        if (updateSearchPins) {
+            updateSearchPins([], '');
         }
         
         setSearchState(prev => ({
@@ -182,102 +99,14 @@ export default function useSearch() {
         }));
         
         lastSearchCenter.current = null;
-    }, []);
+    }, [updateSearchPins]);
 
-    /**
-     * 検索範囲を更新
-     */
-    const updateSearchArea = useCallback((map) => {
-        if (!map) return;
 
-        const currentZoom = map.getZoom();
-        const center = map.getCenter();
-        
-        if (currentZoom >= 8 && searchState.currentCategory) {
-            const range = getSearchRange(currentZoom);
-            const searchAreaFeature = createSearchAreaFeature(center, range);
-            
-            if (map.getSource('search-area')) {
-                map.getSource('search-area').setData({
-                    type: 'FeatureCollection',
-                    features: [searchAreaFeature]
-                });
-            }
-            
-            // 検索範囲が変わったら検索を実行（デバウンス付き）
-            debounceSearch(map, center, currentZoom);
-        } else {
-            // ズームレベルが範囲外なら検索範囲をクリア
-            if (map.getSource('search-area')) {
-                map.getSource('search-area').setData({
-                    type: 'FeatureCollection',
-                    features: []
-                });
-            }
-            lastSearchCenter.current = null;
-        }
-        
-        // ズームアウト時に検索データをクリア
-        if (currentZoom <= 10 && searchState.searchDataLoaded) {
-            clearSearchData(map);
-        }
-    }, [searchState.currentCategory, searchState.searchDataLoaded, clearSearchData]);
 
-    /**
-     * デバウンス機能付きの検索実行
-     */
-    const debounceSearch = useCallback((map, center, currentZoom) => {
-        const currentCenter = `${center.lat.toFixed(6)},${center.lng.toFixed(6)}`;
-        if (currentCenter !== lastSearchCenter.current && searchState.currentCategory) {
-            lastSearchCenter.current = currentCenter;
-            
-            // 前のタイマーをクリア
-            if (searchTimeout.current) {
-                clearTimeout(searchTimeout.current);
-            }
-            
-            // 500ms後に検索実行
-            searchTimeout.current = setTimeout(() => {
-                if (currentZoom > 10) {
-                    console.log('検索範囲変更により検索データを再取得します');
-                    executeSearch(map, searchState.currentCategory, searchState.currentCuisine);
-                }
-            }, 500);
-        }
-    }, [searchState.currentCategory, searchState.currentCuisine, executeSearch]);
-
-    return {
+    return useMemo(() => ({
         searchState,
-        executeSearch,
         executeAreaSearch,
-        clearSearchData,
-        updateSearchArea
-    };
+        clearSearchData
+    }), [searchState, executeAreaSearch, clearSearchData]);
 }
 
-/**
- * Overpass APIレスポンスをGeoJSONフィーチャーに変換
- */
-function processOverpassResponse(data, category) {
-    if (!data.elements || data.elements.length === 0) {
-        console.log('検索結果が見つかりませんでした');
-        return [];
-    }
-    
-    const config = categoryConfig[category];
-    
-    return data.elements
-        .filter(element => isValidElement(element))
-        .map(element => elementToFeature(element, config));
-}
-
-/**
- * ピンのスタイルを更新
- */
-function updatePinStyle(map, category) {
-    const config = categoryConfig[category];
-    
-    if (map.getLayer('search-pins')) {
-        map.setPaintProperty('search-pins', 'circle-color', config.color);
-    }
-}

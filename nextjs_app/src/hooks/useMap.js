@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import MapConfig from '../services/mapConfig';
+import useMapStyle from './useMapStyle';
 
 export default function useMap(containerId) {
     const [map, setMap] = useState(null);
@@ -13,6 +14,17 @@ export default function useMap(containerId) {
     const [isLoaded, setIsLoaded] = useState(false);
     const protocolRef = useRef(null);
     const pmtilesRef = useRef(null);
+    
+    // 宣言的スタイル管理フック
+    const {
+        mapStyle,
+        toggleLayer,
+        addCustomLayer,
+        removeCustomLayer,
+        updateSearchPins,
+        layerVisibility,
+        dynamicLayers
+    } = useMapStyle(MapConfig.PMTILES_URL);
 
     useEffect(() => {
         if (!containerId) return;
@@ -31,13 +43,11 @@ export default function useMap(containerId) {
                 protocol.add(pmtiles);
                 pmtilesRef.current = pmtiles;
 
-                // マップスタイルを取得
-                const mapStyle = MapConfig.getMapStyle(MapConfig.PMTILES_URL);
 
                 // マップを作成
                 const mapInstance = new maplibregl.Map({
                     container: containerId,
-                    style: mapStyle,
+                    style: MapConfig.getMapStyle(MapConfig.PMTILES_URL),
                     center: MapConfig.mapOptions.center,
                     zoom: MapConfig.mapOptions.zoom
                 });
@@ -45,6 +55,10 @@ export default function useMap(containerId) {
                 // ロードイベントを設定
                 mapInstance.on('load', () => {
                     console.log('Map loaded successfully');
+                    
+                    // デバッグ用にupdateSearchPinsをmapオブジェクトに追加
+                    mapInstance._updateSearchPins = updateSearchPins;
+                    
                     setIsLoaded(true);
                 });
 
@@ -103,10 +117,25 @@ export default function useMap(containerId) {
         };
     }, [containerId]);
 
+    // 宣言的スタイル更新エフェクト
+    useEffect(() => {
+        if (!map || !isLoaded) return;
+        
+        console.log('🎨 宣言的スタイル更新を実行');
+        map.setStyle(mapStyle);
+    }, [map, isLoaded, mapStyle]);
+
     return {
         map,
         zoom,
         center,
-        isLoaded
+        isLoaded,
+        // スタイル管理関数をエクスポート
+        toggleLayer,
+        addCustomLayer,
+        removeCustomLayer,
+        updateSearchPins,
+        layerVisibility,
+        dynamicLayers
     };
 }

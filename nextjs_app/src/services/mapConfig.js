@@ -47,13 +47,6 @@ const MapConfig = {
                     clusterMaxZoom: 14,
                     clusterRadius: 50
                 },
-                'search-area': {
-                    type: 'geojson',
-                    data: {
-                        type: 'FeatureCollection',
-                        features: []
-                    }
-                }
             },
             layers: [
                 {
@@ -64,8 +57,7 @@ const MapConfig = {
                     'maxzoom': 22
                 },
                 ...this.getAdministrativeLayers(),
-                ...this.getSearchPinLayers(),
-                ...this.getSearchAreaLayers()
+                ...this.getSearchPinLayers()
             ]
         };
     },
@@ -226,36 +218,76 @@ const MapConfig = {
         ];
     },
     
-    /**
-     * 検索範囲可視化レイヤーを取得
-     * @returns {Array} 検索範囲の塗りつぶしと枠線レイヤー配列
-     */
-    getSearchAreaLayers() {
-        return [
-            {
-                'id': 'search-area-fill',
-                'type': 'fill',
-                'source': 'search-area',
-                'paint': {
-                    'fill-color': '#ff0000',
-                    'fill-opacity': 0.1
-                }
-            },
-            {
-                'id': 'search-area-outline',
-                'type': 'line',
-                'source': 'search-area',
-                'paint': {
-                    'line-color': '#ff0000',
-                    'line-width': 2,
-                    'line-opacity': 0.8
-                }
-            }
-        ];
-    },
     
     /** @type {Array<string>} インタラクティブなレイヤーのID一覧 */
-    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins', 'search-clusters']
+    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins', 'search-clusters'],
+    
+    /**
+     * レイヤーの階層構造定義
+     * 宣言的レイヤー管理で使用される
+     */
+    layerCategories: {
+        base: ['osm-tiles'],
+        administrative: ['regions-fill', 'regions-stroke', 'prefectures-fill', 'prefectures-stroke', 'municipalities-fill', 'municipalities-stroke'],
+        searchResults: ['search-clusters', 'search-cluster-count', 'search-pins']
+    },
+    
+    /**
+     * レイヤーのデフォルト可視性設定
+     */
+    defaultLayerVisibility: {
+        regions: true,
+        prefectures: true,
+        municipalities: true,
+        searchPins: true,
+        searchClusters: true,
+        osmTiles: true
+    },
+    
+    /**
+     * 宣言的スタイル更新のためのスタイルテンプレートを取得
+     * @param {string} pmtilesUrl - PMTilesファイルのURL
+     * @returns {Object} MapLibre GL JSスタイル仕様のテンプレート
+     */
+    getStyleTemplate(pmtilesUrl) {
+        return {
+            version: 8,
+            glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+            sources: this.getBaseSources(pmtilesUrl),
+            layers: []
+        };
+    },
+    
+    /**
+     * ベースソース定義を取得
+     * @param {string} pmtilesUrl - PMTilesファイルのURL
+     * @returns {Object} ソース定義オブジェクト
+     */
+    getBaseSources(pmtilesUrl) {
+        return {
+            'osm-raster': {
+                type: 'raster',
+                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                tileSize: 256,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            },
+            'pmtiles_source': {
+                type: 'vector',
+                url: `pmtiles://${pmtilesUrl}`,
+                attribution: 'PMTiles Vector Data'
+            },
+            'search-pins': {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: []
+                },
+                cluster: true,
+                clusterMaxZoom: 14,
+                clusterRadius: 50
+            }
+        };
+    }
 };
 
 export default MapConfig;

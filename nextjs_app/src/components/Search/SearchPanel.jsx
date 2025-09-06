@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import useSearch from '../../hooks/useSearch';
 import { categoryConfig } from '../../services/overpassApi';
 import styles from './SearchPanel.module.css';
@@ -26,12 +26,21 @@ const calculatePolygonCenter = (coordinates) => {
     return [totalLng / pointCount, totalLat / pointCount];
 };
 
-export default function SearchPanel({ map, onSearchComplete }) {
+export default function SearchPanel({ map, onSearchComplete, searchHook, onMunicipalitySelectionHandlerReady }) {
     const [selectedCategory, setSelectedCategory] = useState('restaurant'); // デフォルトでレストランを選択
     const [selectedCuisine, setSelectedCuisine] = useState('');
     const [selectedMunicipality, setSelectedMunicipality] = useState(null); // { prefecture: "東京都", municipality: "渋谷区" }
     const [isVisible, setIsVisible] = useState(false); // デフォルトで非表示状態
-    const { searchState, executeAreaSearch, clearSearchData } = useSearch();
+    
+    // MapContainerから渡されたsearchHookを使用、フォールバック用にローカルのuseSearchも保持
+    const localSearch = useSearch();
+    const { searchState, executeAreaSearch, clearSearchData } = searchHook || localSearch;
+    
+    console.log('🔍 SearchPanel: searchHook状態', { 
+        hasSearchHook: !!searchHook,
+        hasExecuteAreaSearch: !!executeAreaSearch,
+        searchStateCategory: searchState?.currentCategory
+    });
 
     const handleCategoryChange = useCallback((e) => {
         const category = e.target.value;
@@ -71,15 +80,26 @@ export default function SearchPanel({ map, onSearchComplete }) {
         }
         
         console.log(`🔍 自動検索実行: ${municipalitySelection.prefecture}${municipalitySelection.municipality} - ${categoryConfig[selectedCategory]?.name}`);
+        console.log('🔍 executeAreaSearch状態:', { 
+            hasExecuteAreaSearch: !!executeAreaSearch,
+            selectedCategory,
+            prefecture: municipalitySelection.prefecture,
+            municipality: municipalitySelection.municipality,
+            selectedCuisine
+        });
         
         // 市区町村ベース検索を実行
-        executeAreaSearch(
-            map,
-            selectedCategory,
-            municipalitySelection.prefecture,
-            municipalitySelection.municipality,
-            selectedCuisine
-        );
+        if (executeAreaSearch) {
+            executeAreaSearch(
+                map,
+                selectedCategory,
+                municipalitySelection.prefecture,
+                municipalitySelection.municipality,
+                selectedCuisine
+            );
+        } else {
+            console.error('❌ executeAreaSearchが利用できません');
+        }
         
         if (onSearchComplete) {
             // 検索完了コールバック（結果数は後で更新される）
@@ -93,6 +113,17 @@ export default function SearchPanel({ map, onSearchComplete }) {
 
     // 市区町村選択処理（MapContainer経由で呼び出される）
     const handleMunicipalitySelection = useCallback((feature, props, map) => {
+        // propsの安全性チェック
+        if (!props) {
+            console.error('❌ 市区町村選択: propsがありません', { feature, props });
+            return false;
+        }
+        
+        if (!props.prefecture_jp || !props.municipality_jp) {
+            console.error('❌ 市区町村選択: prefecture_jpまたはmunicipality_jpがありません', props);
+            return false;
+        }
+        
         const newSelection = {
             prefecture: props.prefecture_jp,
             municipality: props.municipality_jp
@@ -156,16 +187,24 @@ export default function SearchPanel({ map, onSearchComplete }) {
 
 
     // 市区町村選択関数をMapContainerで利用できるよう登録
+    const handlerNotifiedRef = useRef(false);
     useEffect(() => {
         if (map && handleMunicipalitySelection) {
             map._municipalitySelectionHandler = handleMunicipalitySelection;
+            
+            // 親にもhandleMunicipalitySelectionを通知（一度だけ）
+            if (onMunicipalitySelectionHandlerReady && !handlerNotifiedRef.current) {
+                onMunicipalitySelectionHandlerReady(handleMunicipalitySelection);
+                handlerNotifiedRef.current = true;
+                console.log('🏛️ MunicipalitySelectionHandler通知完了');
+            }
         }
         return () => {
             if (map && map._municipalitySelectionHandler) {
                 delete map._municipalitySelectionHandler;
             }
         };
-    }, [map, handleMunicipalitySelection]);
+    }, [map, handleMunicipalitySelection, onMunicipalitySelectionHandlerReady]);
 
 
     const showCuisineSelect = selectedCategory === 'restaurant' || selectedCategory === 'cafe';
@@ -252,7 +291,7 @@ export default function SearchPanel({ map, onSearchComplete }) {
                 <div className={styles.searchModeInfo}>
                     {selectedMunicipality 
                         ? `${selectedMunicipality.municipality}全体で検索します` 
-                        : '現在の表示範囲で検索します（ズーム11以上必要）'}
+                        : '市区町村を選択して検索してください'}
                 </div>
             </div>
 

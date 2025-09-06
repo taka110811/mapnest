@@ -1,18 +1,29 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import useMap from '../../hooks/useMap';
 import useSearch from '../../hooks/useSearch';
 import { getZoomBehavior } from '../../utils/mapUtils';
 import MapConfig from '../../services/mapConfig';
+import LayerControls from './LayerControls';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-export default function MapContainer({ onZoomChange, onMapLoad }) {
+export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookReady, municipalitySelectionHandler }) {
     const mapContainerRef = useRef(null);
-    const { map, zoom, isLoaded } = useMap('map');
-    const { updateSearchArea } = useSearch();
+    
+    const { 
+        map, 
+        zoom, 
+        isLoaded, 
+        toggleLayer, 
+        updateSearchPins, 
+        layerVisibility 
+    } = useMap('map');
+    
+    const searchHookResult = useSearch(updateSearchPins);
+    const { searchState } = searchHookResult;
 
     // ズーム変更を親に通知
     useEffect(() => {
@@ -27,6 +38,29 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
             onMapLoad(map);
         }
     }, [isLoaded, map, onMapLoad]);
+
+    // searchHookを親に通知（一度だけ実行）
+    const searchHookNotifiedRef = useRef(false);
+    useEffect(() => {
+        if (onSearchHookReady && searchHookResult && !searchHookNotifiedRef.current) {
+            onSearchHookReady(searchHookResult);
+            searchHookNotifiedRef.current = true;
+            console.log('🔗 SearchHook通知完了');
+        }
+    }, [onSearchHookReady]);
+
+    // municipalitySelectionHandlerをmapに設定
+    useEffect(() => {
+        if (map && municipalitySelectionHandler) {
+            map._municipalitySelectionHandler = municipalitySelectionHandler;
+            console.log('🏛️ MunicipalitySelectionHandler登録完了');
+        }
+        return () => {
+            if (map && map._municipalitySelectionHandler) {
+                delete map._municipalitySelectionHandler;
+            }
+        };
+    }, [map, municipalitySelectionHandler]);
 
     // イベントハンドラーを設定
     useEffect(() => {
@@ -106,14 +140,7 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
             map.getCanvas().style.cursor = '';
         };
 
-        // ズーム・移動イベントハンドラー
-        const handleZoom = () => {
-            updateSearchArea(map);
-        };
-
-        const handleMove = () => {
-            updateSearchArea(map);
-        };
+        // ズーム・移動イベントハンドラー（削除済み）
 
         // クラスタークリックハンドラー
         const handleClusterClick = (e) => {
@@ -180,8 +207,6 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
         map.on('mouseleave', 'search-clusters', handleMouseLeave);
         map.on('mouseenter', 'search-cluster-count', handleMouseEnter);
         map.on('mouseleave', 'search-cluster-count', handleMouseLeave);
-        map.on('zoom', handleZoom);
-        map.on('move', handleMove);
 
         // クリーンアップ
         return () => {
@@ -192,26 +217,32 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
             map.off('mouseleave', 'search-clusters', handleMouseLeave);
             map.off('mouseenter', 'search-cluster-count', handleMouseEnter);
             map.off('mouseleave', 'search-cluster-count', handleMouseLeave);
-            map.off('zoom', handleZoom);
-            map.off('move', handleMove);
         };
-    }, [map, isLoaded, updateSearchArea]);
+    }, [map, isLoaded]);
 
     const handleFeatureClick = (map, e, feature) => {
         const props = feature.properties;
         const currentZoom = map.getZoom();
         
         console.log(`🎯 フィーチャークリック: ${props.level}, 現在ズーム: ${currentZoom}`);
+        console.log('🔍 フィーチャープロパティ:', props);
         
         // ズームレベル11以上かつ市区町村の場合: SearchPanelの市区町村選択機能が責任を持つ
         if (currentZoom >= 11 && props.level === 'municipality') {
             console.log('📍 ズーム11以上: 市区町村選択機能が担当');
             
             if (map._municipalitySelectionHandler) {
+                console.log('🏛️ 市区町村選択ハンドラー呼び出し:', { 
+                    feature: feature.properties, 
+                    props,
+                    hasHandler: !!map._municipalitySelectionHandler
+                });
                 const handled = map._municipalitySelectionHandler(feature, props, map);
                 if (handled) {
                     return; // 処理完了
                 }
+            } else {
+                console.log('❌ 市区町村選択ハンドラーが見つかりません');
             }
         }
         
@@ -244,6 +275,12 @@ export default function MapContainer({ onZoomChange, onMapLoad }) {
                 height: '100vh',
                 position: 'relative'
             }} 
-        />
+        >
+            <LayerControls
+                map={map}
+                toggleLayer={toggleLayer}
+                layerVisibility={layerVisibility}
+            />
+        </div>
     );
 }
