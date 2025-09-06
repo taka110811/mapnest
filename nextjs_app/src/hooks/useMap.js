@@ -22,6 +22,7 @@ export default function useMap(containerId) {
         addCustomLayer,
         removeCustomLayer,
         updateSearchPins,
+        updateFavoritesPins,
         layerVisibility,
         dynamicLayers
     } = useMapStyle(MapConfig.PMTILES_URL);
@@ -135,6 +136,7 @@ export default function useMap(containerId) {
         addCustomLayer,
         removeCustomLayer,
         updateSearchPins,
+        updateFavoritesPins,
         layerVisibility,
         dynamicLayers
     };

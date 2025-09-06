@@ -10,7 +10,7 @@ import LayerControls from './LayerControls';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookReady, municipalitySelectionHandler }) {
+export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookReady, municipalitySelectionHandler, onUpdateFavoritesPinsReady }) {
     const mapContainerRef = useRef(null);
     
     const { 
@@ -19,6 +19,7 @@ export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookRead
         isLoaded, 
         toggleLayer, 
         updateSearchPins, 
+        updateFavoritesPins,
         layerVisibility 
     } = useMap('map');
     
@@ -48,6 +49,16 @@ export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookRead
             console.log('🔗 SearchHook通知完了');
         }
     }, [onSearchHookReady]);
+
+    // updateFavoritesPinsを親に通知（一度だけ実行）
+    const updateFavoritesPinsNotifiedRef = useRef(false);
+    useEffect(() => {
+        if (onUpdateFavoritesPinsReady && updateFavoritesPins && !updateFavoritesPinsNotifiedRef.current) {
+            onUpdateFavoritesPinsReady(updateFavoritesPins);
+            updateFavoritesPinsNotifiedRef.current = true;
+            console.log('⭐ UpdateFavoritesPins通知完了');
+        }
+    }, [onUpdateFavoritesPinsReady, updateFavoritesPins]);
 
     // municipalitySelectionHandlerをmapに設定
     useEffect(() => {
@@ -123,6 +134,21 @@ export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookRead
             if (props.address) content += `<p style="margin: 2px 0;"><strong>住所:</strong> ${props.address}</p>`;
             if (props.phone) content += `<p style="margin: 2px 0;"><strong>電話:</strong> ${props.phone}</p>`;
             if (props.website) content += `<p style="margin: 2px 0;"><a href="${props.website}" target="_blank">ウェブサイト</a></p>`;
+            const escapedName = (props.name || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const escapedCategory = (props.category || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const escapedAddress = (props.address || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const escapedIcon = (props.icon || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            
+            content += `<button onclick="window.addToFavorites && window.addToFavorites('${escapedName}', '${escapedCategory}', [${feature.geometry.coordinates}], '${escapedAddress}', '${escapedIcon}')" style="
+                background: #FFD700; 
+                border: none; 
+                padding: 6px 12px; 
+                border-radius: 4px; 
+                cursor: pointer; 
+                font-weight: bold; 
+                margin-top: 8px;
+                color: #333;
+            ">⭐ お気に入りに追加</button>`;
             content += `</div>`;
             
             new maplibregl.Popup()

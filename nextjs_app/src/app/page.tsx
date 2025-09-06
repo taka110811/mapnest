@@ -29,15 +29,29 @@ const SearchPanel = dynamic(
   { ssr: false }
 );
 
+const FavoritesPanel = dynamic(
+  () => import('../components/Favorites/FavoritesPanel'),
+  { ssr: false }
+);
+
 export default function Home() {
   const [zoom, setZoom] = useState(5);
   const [map, setMap] = useState(null);
   const [searchCount, setSearchCount] = useState(0);
   const [searchHook, setSearchHook] = useState(null);
   const [municipalitySelectionHandler, setMunicipalitySelectionHandler] = useState(null);
+  const [updateFavoritesPins, setUpdateFavoritesPins] = useState(null);
 
   const handleMunicipalitySelectionHandlerReady = (handler) => {
     setMunicipalitySelectionHandler(() => handler);
+  };
+
+  const handleUpdateFavoritesPinsReady = (updateFunc) => {
+    setUpdateFavoritesPins(() => updateFunc);
+  };
+
+  const handleFavoriteClick = (favorite) => {
+    console.log('📍 お気に入りがクリックされました:', favorite);
   };
 
   return (
@@ -48,6 +62,7 @@ export default function Home() {
         onMapLoad={setMap}
         onSearchHookReady={setSearchHook}
         municipalitySelectionHandler={municipalitySelectionHandler}
+        onUpdateFavoritesPinsReady={handleUpdateFavoritesPinsReady}
       />
       <InfoPanel 
         zoom={zoom} 
@@ -59,6 +74,13 @@ export default function Home() {
           onSearchComplete={setSearchCount}
           searchHook={searchHook}
           onMunicipalitySelectionHandlerReady={handleMunicipalitySelectionHandlerReady}
+        />
+      )}
+      {map && updateFavoritesPins && (
+        <FavoritesPanel 
+          map={map}
+          onFavoriteClick={handleFavoriteClick}
+          updateFavoritesPins={updateFavoritesPins}
         />
       )}
     </main>

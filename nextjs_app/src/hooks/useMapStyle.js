@@ -22,6 +22,9 @@ export default function useMapStyle(pmtilesUrl) {
         // 検索関連レイヤー
         searchPins: true,
         searchClusters: true,
+        // お気に入りレイヤー
+        favorites: true,
+        favoritesLabels: true,
         // ベースマップ
         osmTiles: true
     });
@@ -29,6 +32,7 @@ export default function useMapStyle(pmtilesUrl) {
     // 動的レイヤーの状態（検索結果など）
     const [dynamicLayers, setDynamicLayers] = useState({
         searchPins: [],
+        favoritesPins: [],
         currentCategory: ''
     });
 
@@ -47,6 +51,16 @@ export default function useMapStyle(pmtilesUrl) {
             searchPins: pins,
             currentCategory: category
         }));
+    }, []);
+
+    // お気に入りピンを更新する関数
+    const updateFavoritesPins = useCallback((favoritesGeoJSON) => {
+        const features = favoritesGeoJSON?.features || [];
+        setDynamicLayers(prev => ({
+            ...prev,
+            favoritesPins: features
+        }));
+        console.log(`⭐ お気に入りピン${features.length}件を地図に反映`);
     }, []);
 
 
@@ -77,6 +91,13 @@ export default function useMapStyle(pmtilesUrl) {
                         type: 'FeatureCollection',
                         features: dynamicLayers.searchPins || []
                     }
+                },
+                'favorites-pins': {
+                    ...mapStyle.sources['favorites-pins'],
+                    data: {
+                        type: 'FeatureCollection',
+                        features: dynamicLayers.favoritesPins || []
+                    }
                 }
             },
             layers: mapStyle.layers
@@ -87,6 +108,8 @@ export default function useMapStyle(pmtilesUrl) {
                     if (layer.id.startsWith('municipalities-') && !layerVisibility.municipalities) return false;
                     if (layer.id === 'search-pins' && !layerVisibility.searchPins) return false;
                     if (layer.id.startsWith('search-cluster') && !layerVisibility.searchClusters) return false;
+                    if (layer.id === 'favorites-pins' && !layerVisibility.favorites) return false;
+                    if (layer.id === 'favorites-labels' && !layerVisibility.favoritesLabels) return false;
                     if (layer.id === 'osm-tiles' && !layerVisibility.osmTiles) return false;
                     
                     return true;
@@ -162,6 +185,7 @@ export default function useMapStyle(pmtilesUrl) {
         
         // 動的データ更新関数
         updateSearchPins,
+        updateFavoritesPins,
         
         // 状態参照
         layerVisibility,

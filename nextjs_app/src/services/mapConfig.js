@@ -47,6 +47,14 @@ const MapConfig = {
                     clusterMaxZoom: 14,
                     clusterRadius: 50
                 },
+                'favorites-pins': {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: []
+                    },
+                    cluster: false
+                }
             },
             layers: [
                 {
@@ -57,7 +65,8 @@ const MapConfig = {
                     'maxzoom': 22
                 },
                 ...this.getAdministrativeLayers(),
-                ...this.getSearchPinLayers()
+                ...this.getSearchPinLayers(),
+                ...this.getFavoritesPinLayers()
             ]
         };
     },
@@ -218,9 +227,50 @@ const MapConfig = {
         ];
     },
     
+    /**
+     * お気に入りピン表示レイヤーを取得
+     * @returns {Array} お気に入りピンとラベルのレイヤー配列
+     */
+    getFavoritesPinLayers() {
+        return [
+            // お気に入りピン
+            {
+                'id': 'favorites-pins',
+                'type': 'circle',
+                'source': 'favorites-pins',
+                'paint': {
+                    'circle-color': '#FFD700',
+                    'circle-radius': 8,
+                    'circle-stroke-color': '#FF6B6B',
+                    'circle-stroke-width': 3,
+                    'circle-opacity': 0.9
+                }
+            },
+            // お気に入りピンラベル
+            {
+                'id': 'favorites-labels',
+                'type': 'symbol',
+                'source': 'favorites-pins',
+                'layout': {
+                    'text-field': '{name}',
+                    'text-font': ['Noto Sans Regular'],
+                    'text-size': 11,
+                    'text-offset': [0, 1.8],
+                    'text-anchor': 'top',
+                    'text-allow-overlap': false,
+                    'text-ignore-placement': false
+                },
+                'paint': {
+                    'text-color': '#333333',
+                    'text-halo-color': '#FFFFFF',
+                    'text-halo-width': 2
+                }
+            }
+        ];
+    },
     
     /** @type {Array<string>} インタラクティブなレイヤーのID一覧 */
-    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins', 'search-clusters'],
+    interactiveLayers: ['regions-fill', 'prefectures-fill', 'municipalities-fill', 'search-pins', 'search-clusters', 'favorites-pins'],
     
     /**
      * レイヤーの階層構造定義
@@ -229,7 +279,8 @@ const MapConfig = {
     layerCategories: {
         base: ['osm-tiles'],
         administrative: ['regions-fill', 'regions-stroke', 'prefectures-fill', 'prefectures-stroke', 'municipalities-fill', 'municipalities-stroke'],
-        searchResults: ['search-clusters', 'search-cluster-count', 'search-pins']
+        searchResults: ['search-clusters', 'search-cluster-count', 'search-pins'],
+        favorites: ['favorites-pins', 'favorites-labels']
     },
     
     /**
@@ -241,6 +292,8 @@ const MapConfig = {
         municipalities: true,
         searchPins: true,
         searchClusters: true,
+        favorites: true,
+        favoritesLabels: true,
         osmTiles: true
     },
     
@@ -285,6 +338,14 @@ const MapConfig = {
                 cluster: true,
                 clusterMaxZoom: 14,
                 clusterRadius: 50
+            },
+            'favorites-pins': {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: []
+                },
+                cluster: false
             }
         };
     }
