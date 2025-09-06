@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import InfoPanel from '../components/UI/InfoPanel';
 
 // MapLibreGL は SSR に対応していないため動的インポート
 const MapContainer = dynamic(
@@ -29,6 +28,11 @@ const SearchPanel = dynamic(
   { ssr: false }
 );
 
+const ControlPanel = dynamic(
+  () => import('../components/UI/ControlPanel'),
+  { ssr: false }
+);
+
 
 export default function Home() {
   const [zoom, setZoom] = useState(5);
@@ -37,6 +41,8 @@ export default function Home() {
   const [searchHook, setSearchHook] = useState(null);
   const [municipalitySelectionHandler, setMunicipalitySelectionHandler] = useState(null);
   const [updateFavoritesPins, setUpdateFavoritesPins] = useState(null);
+  const [toggleLayer, setToggleLayer] = useState(null);
+  const [layerVisibility, setLayerVisibility] = useState(null);
 
   const handleMunicipalitySelectionHandlerReady = (handler) => {
     setMunicipalitySelectionHandler(() => handler);
@@ -44,6 +50,14 @@ export default function Home() {
 
   const handleUpdateFavoritesPinsReady = (updateFunc) => {
     setUpdateFavoritesPins(() => updateFunc);
+  };
+
+  const handleToggleLayerReady = (toggleFunc) => {
+    setToggleLayer(() => toggleFunc);
+  };
+
+  const handleLayerVisibilityReady = (visibility) => {
+    setLayerVisibility(visibility);
   };
 
   return (
@@ -55,11 +69,18 @@ export default function Home() {
         onSearchHookReady={setSearchHook}
         municipalitySelectionHandler={municipalitySelectionHandler}
         onUpdateFavoritesPinsReady={handleUpdateFavoritesPinsReady}
+        onToggleLayerReady={handleToggleLayerReady}
+        onLayerVisibilityReady={handleLayerVisibilityReady}
       />
-      <InfoPanel 
-        zoom={zoom} 
-        searchCount={searchCount}
-      />
+      {map && (
+        <ControlPanel 
+          map={map}
+          zoom={zoom} 
+          searchCount={searchCount}
+          toggleLayer={toggleLayer}
+          layerVisibility={layerVisibility}
+        />
+      )}
       {map && (
         <SearchPanel 
           map={map}

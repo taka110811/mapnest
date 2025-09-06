@@ -6,11 +6,10 @@ import useMap from '../../hooks/useMap';
 import useSearch from '../../hooks/useSearch';
 import { getZoomBehavior } from '../../utils/mapUtils';
 import MapConfig from '../../services/mapConfig';
-import LayerControls from './LayerControls';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookReady, municipalitySelectionHandler, onUpdateFavoritesPinsReady }) {
+export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookReady, municipalitySelectionHandler, onUpdateFavoritesPinsReady, onToggleLayerReady, onLayerVisibilityReady }) {
     const mapContainerRef = useRef(null);
     
     const { 
@@ -59,6 +58,23 @@ export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookRead
             console.log('⭐ UpdateFavoritesPins通知完了');
         }
     }, [onUpdateFavoritesPinsReady, updateFavoritesPins]);
+
+    // toggleLayerを親に通知（一度だけ実行）
+    const toggleLayerNotifiedRef = useRef(false);
+    useEffect(() => {
+        if (onToggleLayerReady && toggleLayer && !toggleLayerNotifiedRef.current) {
+            onToggleLayerReady(toggleLayer);
+            toggleLayerNotifiedRef.current = true;
+            console.log('🎛️ ToggleLayer通知完了');
+        }
+    }, [onToggleLayerReady, toggleLayer]);
+
+    // layerVisibilityを親に通知
+    useEffect(() => {
+        if (onLayerVisibilityReady && layerVisibility) {
+            onLayerVisibilityReady(layerVisibility);
+        }
+    }, [onLayerVisibilityReady, layerVisibility]);
 
     // municipalitySelectionHandlerをmapに設定
     useEffect(() => {
@@ -302,11 +318,6 @@ export default function MapContainer({ onZoomChange, onMapLoad, onSearchHookRead
                 position: 'relative'
             }} 
         >
-            <LayerControls
-                map={map}
-                toggleLayer={toggleLayer}
-                layerVisibility={layerVisibility}
-            />
         </div>
     );
 }

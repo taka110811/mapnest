@@ -32,7 +32,7 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
     const [selectedCuisine, setSelectedCuisine] = useState('');
     const [selectedMunicipality, setSelectedMunicipality] = useState(null); // { prefecture: "東京都", municipality: "渋谷区" }
     const [isVisible, setIsVisible] = useState(false); // デフォルトで非表示状態
-    const [activeTab, setActiveTab] = useState('search'); // 'search' または 'favorites'
+    const [activeTab, setActiveTab] = useState('search'); // 'search', 'favorites'
     const [favoritesQuery, setFavoritesQuery] = useState('');
     
     // MapContainerから渡されたsearchHookを使用、フォールバック用にローカルのuseSearchも保持
