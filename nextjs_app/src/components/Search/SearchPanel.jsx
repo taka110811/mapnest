@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useSearch from '../../hooks/useSearch';
+import useFavorites from '../../hooks/useFavorites';
 import { categoryConfig } from '../../services/overpassApi';
 import styles from './SearchPanel.module.css';
 
@@ -26,21 +27,72 @@ const calculatePolygonCenter = (coordinates) => {
     return [totalLng / pointCount, totalLat / pointCount];
 };
 
-export default function SearchPanel({ map, onSearchComplete, searchHook, onMunicipalitySelectionHandlerReady }) {
+export default function SearchPanel({ map, onSearchComplete, searchHook, onMunicipalitySelectionHandlerReady, updateFavoritesPins }) {
     const [selectedCategory, setSelectedCategory] = useState('restaurant'); // デフォルトでレストランを選択
     const [selectedCuisine, setSelectedCuisine] = useState('');
     const [selectedMunicipality, setSelectedMunicipality] = useState(null); // { prefecture: "東京都", municipality: "渋谷区" }
     const [isVisible, setIsVisible] = useState(false); // デフォルトで非表示状態
+    const [activeTab, setActiveTab] = useState('search'); // 'search' または 'favorites'
+    const [favoritesQuery, setFavoritesQuery] = useState('');
     
     // MapContainerから渡されたsearchHookを使用、フォールバック用にローカルのuseSearchも保持
     const localSearch = useSearch();
     const { searchState, executeAreaSearch, clearSearchData } = searchHook || localSearch;
+    
+    // お気に入り機能
+    const {
+        favorites,
+        favoritesCount,
+        addFavorite,
+        removeFavorite,
+        getFavoritesByCategory,
+        getFavoritesAsGeoJSON,
+        clearAllFavorites,
+        exportFavorites
+    } = useFavorites();
     
     console.log('🔍 SearchPanel: searchHook状態', { 
         hasSearchHook: !!searchHook,
         hasExecuteAreaSearch: !!executeAreaSearch,
         searchStateCategory: searchState?.currentCategory
     });
+
+    // お気に入りが変更された時に地図に反映
+    useEffect(() => {
+        if (updateFavoritesPins) {
+            const geoJSON = getFavoritesAsGeoJSON();
+            updateFavoritesPins(geoJSON);
+        }
+    }, [favorites, updateFavoritesPins, getFavoritesAsGeoJSON]);
+
+    // グローバルなお気に入り追加関数を設定
+    useEffect(() => {
+        window.addToFavorites = (name, category, coordinates, address = '', icon = '📍') => {
+            const pinData = {
+                geometry: {
+                    coordinates: coordinates || [0, 0]
+                },
+                properties: {
+                    name: name || '名称不明',
+                    category: category || 'other',
+                    address: address || '',
+                    icon: icon || '📍'
+                }
+            };
+            
+            const result = addFavorite(pinData, '');
+            
+            if (result) {
+                console.log('⭐ お気に入りに追加完了:', name);
+            } else {
+                console.log('⚠️ お気に入り追加をスキップ（重複またはエラー）:', name);
+            }
+        };
+        
+        return () => {
+            delete window.addToFavorites;
+        };
+    }, [addFavorite]);
 
     const handleCategoryChange = useCallback((e) => {
         const category = e.target.value;
@@ -212,7 +264,22 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
     return (
         <div className={styles.searchPanel}>
             <div className={styles.header}>
-                <h3 className={styles.title}>🔍 検索</h3>
+                <div className={styles.tabContainer}>
+                    <button
+                        className={`${styles.tab} ${activeTab === 'search' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('search')}
+                        type="button"
+                    >
+                        🔍 検索
+                    </button>
+                    <button
+                        className={`${styles.tab} ${activeTab === 'favorites' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('favorites')}
+                        type="button"
+                    >
+                        ⭐ お気に入り {favoritesCount > 0 && <span className={styles.count}>({favoritesCount})</span>}
+                    </button>
+                </div>
                 <button 
                     className={styles.toggleButton}
                     onClick={() => setIsVisible(!isVisible)}
@@ -222,30 +289,35 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
                 </button>
             </div>
             
-            {/* 表示時はカテゴリー選択、非表示時はテキスト表示 */}
-            {isVisible ? (
-                <select 
-                    value={selectedCategory} 
-                    onChange={handleCategoryChange}
-                    className={styles.select}
-                >
-                    <option value="">カテゴリーを選択</option>
-                    {Object.entries(categoryConfig).map(([key, config]) => (
-                        <option key={key} value={key}>
-                            {config.icon} {config.name}
-                        </option>
-                    ))}
-                </select>
-            ) : (
+            {/* 非表示時のヘッダー表示 */}
+            {!isVisible && (
                 <div className={styles.categoryText}>
-                    {selectedCategory 
-                        ? `${categoryConfig[selectedCategory]?.icon} ${categoryConfig[selectedCategory]?.name}` 
-                        : 'カテゴリー未選択'}
+                    {activeTab === 'search' 
+                        ? (selectedCategory 
+                            ? `${categoryConfig[selectedCategory]?.icon} ${categoryConfig[selectedCategory]?.name}` 
+                            : 'カテゴリー未選択')
+                        : `⭐ お気に入り ${favoritesCount}件`
+                    }
                 </div>
             )}
             
             {isVisible && (
             <div className={styles.content}>
+                {activeTab === 'search' ? (
+                    // 検索タブのコンテンツ
+                    <>
+                        <select 
+                            value={selectedCategory} 
+                            onChange={handleCategoryChange}
+                            className={styles.select}
+                        >
+                            <option value="">カテゴリーを選択</option>
+                            {Object.entries(categoryConfig).map(([key, config]) => (
+                                <option key={key} value={key}>
+                                    {config.icon} {config.name}
+                                </option>
+                            ))}
+                        </select>
 
             {showCuisineSelect && (
                 <select 
@@ -297,17 +369,119 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
 
             {/* 自動検索のため、検索実行ボタンは削除 */}
 
-            <div className={styles.results}>
-                {searchState.error && (
-                    <div className={styles.error}>{searchState.error}</div>
-                )}
-                {searchState.results.length > 0 && !searchState.error && (
-                    <div className={styles.success}>
-                        {categoryConfig[selectedCategory]?.name}: {searchState.results.length}件見つかりました
+                        <div className={styles.results}>
+                            {searchState.error && (
+                                <div className={styles.error}>{searchState.error}</div>
+                            )}
+                            {searchState.results.length > 0 && !searchState.error && (
+                                <div className={styles.success}>
+                                    {categoryConfig[selectedCategory]?.name}: {searchState.results.length}件見つかりました
+                                </div>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    // お気に入りタブのコンテンツ
+                    <div className={styles.favoritesContent}>
+                        {favoritesCount === 0 ? (
+                            <div className={styles.emptyState}>
+                                <p>まだお気に入りがありません</p>
+                                <small>検索結果からピンをクリックして「お気に入りに追加」してください</small>
+                            </div>
+                        ) : (
+                            <>
+                                <input
+                                    type="text"
+                                    placeholder="お気に入りを検索..."
+                                    value={favoritesQuery}
+                                    onChange={(e) => setFavoritesQuery(e.target.value)}
+                                    className={styles.searchInput}
+                                />
+                                <div className={styles.favoritesList}>
+                                    {favorites
+                                        .filter(fav => 
+                                            fav.name.toLowerCase().includes(favoritesQuery.toLowerCase()) ||
+                                            fav.address.toLowerCase().includes(favoritesQuery.toLowerCase())
+                                        )
+                                        .map(favorite => (
+                                            <div
+                                                key={favorite.id}
+                                                className={styles.favoriteItem}
+                                                onClick={() => {
+                                                    if (map) {
+                                                        map.easeTo({
+                                                            center: favorite.coordinates,
+                                                            zoom: Math.max(map.getZoom(), 15),
+                                                            duration: 1000
+                                                        });
+                                                    }
+                                                }}
+                                            >
+                                                <div className={styles.favoriteHeader}>
+                                                    <span className={styles.favoriteName}>
+                                                        {categoryConfig[favorite.category]?.icon || '📍'} {favorite.name}
+                                                    </span>
+                                                    <button
+                                                        className={styles.deleteButton}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm('このお気に入りを削除しますか？')) {
+                                                                removeFavorite(favorite.id);
+                                                            }
+                                                        }}
+                                                        title="削除"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                                {favorite.address && (
+                                                    <div className={styles.favoriteAddress}>
+                                                        📍 {favorite.address}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                                <div className={styles.favoritesActions}>
+                                    <button
+                                        onClick={() => {
+                                            try {
+                                                const data = exportFavorites();
+                                                const blob = new Blob([data], { type: 'application/json' });
+                                                const url = URL.createObjectURL(blob);
+                                                
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `mapnest-favorites-${new Date().toISOString().split('T')[0]}.json`;
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                document.body.removeChild(a);
+                                                URL.revokeObjectURL(url);
+                                            } catch (error) {
+                                                console.error('エクスポートエラー:', error);
+                                                alert('エクスポートに失敗しました');
+                                            }
+                                        }}
+                                        className={styles.actionButton}
+                                    >
+                                        📥 エクスポート
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm(`お気に入り${favoritesCount}件をすべて削除しますか？`)) {
+                                                clearAllFavorites();
+                                            }
+                                        }}
+                                        className={styles.actionButton}
+                                    >
+                                        🗑️ 全削除
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
-            </div>
-            
             </div>
             )}
         </div>

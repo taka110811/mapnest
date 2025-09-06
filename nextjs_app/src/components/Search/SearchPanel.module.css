@@ -19,6 +19,38 @@
     margin-bottom: 10px;
 }
 
+.tabContainer {
+    display: flex;
+    gap: 4px;
+}
+
+.tab {
+    background: #f0f0f0;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    background: #e0e0e0;
+}
+
+.activeTab {
+    background: #007cba;
+    color: white;
+}
+
+.count {
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 1px 4px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
 .title {
     margin: 0;
     font-size: 14px;
@@ -93,6 +125,122 @@
 .results {
     margin-top: 10px;
     font-size: 11px;
+}
+
+/* お気に入り用スタイル */
+.favoritesContent {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.emptyState p {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+}
+
+.emptyState small {
+    font-size: 10px;
+    color: #aaa;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.favoritesList {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.favoriteItem {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.favoriteItem:hover {
+    background: #e9ecef;
+    border-color: #007cba;
+}
+
+.favoriteHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.favoriteName {
+    font-size: 11px;
+    font-weight: 500;
+    color: #333;
+    flex: 1;
+}
+
+.favoriteAddress {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.deleteButton {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.deleteButton:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.favoritesActions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+}
+
+.actionButton {
+    flex: 1;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #007cba;
+    color: white;
+}
+
+.actionButton:hover {
+    background: #0056b3;
 }
 
 .success {
