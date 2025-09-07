@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-    console.log('🗺️ Route optimization API called');
+    console.log('🗺️ Route optimization API called - START');
+    console.log('🔍 Runtime environment:', {
+        nodeEnv: process.env.NODE_ENV,
+        vercel: process.env.VERCEL,
+        vercelEnv: process.env.VERCEL_ENV
+    });
     
     try {
         const body = await request.json();

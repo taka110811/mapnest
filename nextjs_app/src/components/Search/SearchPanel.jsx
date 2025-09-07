@@ -260,9 +260,17 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
             };
             
             console.log('📡 送信データ:', requestData);
+            console.log('🌍 環境情報:', {
+                host: window.location.host,
+                protocol: window.location.protocol,
+                pathname: window.location.pathname
+            });
             
             // お気に入りデータを変換してAPIに送信
-            const response = await fetch('/api/route-optimize', {
+            const apiUrl = '/api/route-optimize';
+            console.log('📡 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -270,7 +278,12 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
                 body: JSON.stringify(requestData)
             });
 
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response ok:', response.ok);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('📡 Error response:', errorText);
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
