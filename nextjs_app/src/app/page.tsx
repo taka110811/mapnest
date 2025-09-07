@@ -44,19 +44,19 @@ export default function Home() {
   const [toggleLayer, setToggleLayer] = useState(null);
   const [layerVisibility, setLayerVisibility] = useState(null);
 
-  const handleMunicipalitySelectionHandlerReady = (handler) => {
+  const handleMunicipalitySelectionHandlerReady = (handler: any) => {
     setMunicipalitySelectionHandler(() => handler);
   };
 
-  const handleUpdateFavoritesPinsReady = (updateFunc) => {
+  const handleUpdateFavoritesPinsReady = (updateFunc: any) => {
     setUpdateFavoritesPins(() => updateFunc);
   };
 
-  const handleToggleLayerReady = (toggleFunc) => {
+  const handleToggleLayerReady = (toggleFunc: any) => {
     setToggleLayer(() => toggleFunc);
   };
 
-  const handleLayerVisibilityReady = (visibility) => {
+  const handleLayerVisibilityReady = (visibility: any) => {
     setLayerVisibility(visibility);
   };
 
