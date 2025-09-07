@@ -30,10 +30,19 @@ export async function POST(request: Request) {
 
         // Google Maps API キーを環境変数から取得
         const googleApiKey = process.env.GOOGLE_API_KEY;
+        console.log('🔍 Environment check:', {
+            hasApiKey: !!googleApiKey,
+            nodeEnv: process.env.NODE_ENV,
+            apiKeyLength: googleApiKey?.length
+        });
         
         if (!googleApiKey) {
+            console.error('❌ Google Maps API key not found in environment variables');
             return NextResponse.json(
-                { error: 'Google Maps API key not configured' },
+                { 
+                    error: 'Google Maps API key not configured',
+                    details: 'GOOGLE_API_KEY environment variable is missing'
+                },
                 { status: 400 }
             );
         }
