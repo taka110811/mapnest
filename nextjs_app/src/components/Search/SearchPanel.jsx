@@ -34,6 +34,8 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
     const [isVisible, setIsVisible] = useState(false); // デフォルトで非表示状態
     const [activeTab, setActiveTab] = useState('search'); // 'search', 'favorites'
     const [favoritesQuery, setFavoritesQuery] = useState('');
+    const [isOptimizing, setIsOptimizing] = useState(false);
+    const [optimizationResult, setOptimizationResult] = useState(null);
     
     // MapContainerから渡されたsearchHookを使用、フォールバック用にローカルのuseSearchも保持
     const localSearch = useSearch();
@@ -237,6 +239,54 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
         return true; // 処理成功
     }, [selectedMunicipality, triggerAutoSearch]);
 
+    // ルート最適化処理
+    const handleRouteOptimization = useCallback(async () => {
+        if (favoritesCount < 2) {
+            alert('ルート最適化には2つ以上のお気に入りが必要です');
+            return;
+        }
+
+        setIsOptimizing(true);
+        try {
+            console.log('🗺️ ルート最適化開始:', favorites.length, '件のお気に入り');
+            console.log('📍 お気に入りデータ:', favorites);
+            
+            const requestData = {
+                favorites: favorites.map(fav => ({
+                    name: fav.name,
+                    address: fav.address,
+                    coordinates: fav.coordinates
+                }))
+            };
+            
+            console.log('📡 送信データ:', requestData);
+            
+            // お気に入りデータを変換してAPIに送信
+            const response = await fetch('/api/route-optimize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            setOptimizationResult(result);
+            
+            console.log('✅ ルート最適化完了:', result);
+            alert('ルート最適化が完了しました！結果を確認してください。');
+
+        } catch (error) {
+            console.error('❌ ルート最適化エラー:', error);
+            alert('ルート最適化に失敗しました: ' + error.message);
+        } finally {
+            setIsOptimizing(false);
+        }
+    }, [favorites, favoritesCount]);
 
     // 市区町村選択関数をMapContainerで利用できるよう登録
     const handlerNotifiedRef = useRef(false);
@@ -445,6 +495,14 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
                                 </div>
                                 <div className={styles.favoritesActions}>
                                     <button
+                                        onClick={() => handleRouteOptimization()}
+                                        className={`${styles.actionButton} ${styles.routeOptimizeButton}`}
+                                        disabled={favoritesCount < 2 || isOptimizing}
+                                        title={favoritesCount < 2 ? '2つ以上のお気に入りが必要です' : 'お気に入りの最適ルートを計算'}
+                                    >
+                                        {isOptimizing ? '⏳ 計算中...' : '🗺️ ルート最適化'}
+                                    </button>
+                                    <button
                                         onClick={() => {
                                             try {
                                                 const data = exportFavorites();
@@ -478,6 +536,55 @@ export default function SearchPanel({ map, onSearchComplete, searchHook, onMunic
                                         🗑️ 全削除
                                     </button>
                                 </div>
+                                
+                                {/* ルート最適化結果表示エリア */}
+                                {optimizationResult && (
+                                    <div className={styles.optimizationResults}>
+                                        <h4 className={styles.optimizationTitle}>
+                                            🗺️ ルート最適化結果
+                                            {optimizationResult.data?.isMockData && (
+                                                <small style={{fontSize: '9px', color: '#666', fontWeight: 'normal'}}> (テストデータ)</small>
+                                            )}
+                                        </h4>
+                                        
+                                        {optimizationResult.data?.googleMapsUrl && (
+                                            <div className={styles.optimizationAction}>
+                                                <a 
+                                                    href={optimizationResult.data.googleMapsUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={styles.mapsButton}
+                                                >
+                                                    📍 Google Mapsで開く
+                                                </a>
+                                            </div>
+                                        )}
+                                        
+                                        {optimizationResult.data?.summary && optimizationResult.data.summary.length > 0 && (
+                                            <div className={styles.optimizationSummary}>
+                                                <h5>概要</h5>
+                                                {optimizationResult.data.summary.map((entry, index) => (
+                                                    <div key={index} className={styles.summaryEntry}>
+                                                        {entry.概要 && (
+                                                            <div className={styles.summaryOverview}>
+                                                                <div>訪問地点数: {entry.概要.訪問地点数}</div>
+                                                                <div>総移動時間: {entry.概要.総移動時間}</div>
+                                                                <div>総移動距離: {entry.概要.総移動距離}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        <button
+                                            className={styles.closeResultsButton}
+                                            onClick={() => setOptimizationResult(null)}
+                                        >
+                                            ✕ 結果を閉じる
+                                        </button>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>

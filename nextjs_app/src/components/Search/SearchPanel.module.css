@@ -243,6 +243,93 @@
     background: #0056b3;
 }
 
+.routeOptimizeButton {
+    background: #28a745;
+    flex: 1;
+}
+
+.routeOptimizeButton:hover:not(:disabled) {
+    background: #218838;
+}
+
+.routeOptimizeButton:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Route optimization results styles */
+.optimizationResults {
+    margin-top: 15px;
+    padding: 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.optimizationTitle {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+}
+
+.optimizationAction {
+    margin-bottom: 10px;
+}
+
+.mapsButton {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #4285f4;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.mapsButton:hover {
+    background: #3367d6;
+}
+
+.optimizationSummary {
+    margin-bottom: 10px;
+}
+
+.optimizationSummary h5 {
+    margin: 0 0 6px 0;
+    font-size: 11px;
+    color: #666;
+}
+
+.summaryEntry {
+    margin-bottom: 8px;
+}
+
+.summaryOverview div {
+    font-size: 10px;
+    margin-bottom: 2px;
+    color: #333;
+}
+
+.closeResultsButton {
+    width: 100%;
+    padding: 4px 8px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.closeResultsButton:hover {
+    background: #5a6268;
+}
+
 .success {
     color: #28a745;
 }
